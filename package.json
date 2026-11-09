@@ -1,0 +1,18 @@
+{
+  "name": "gamelivechibi",
+  "version": "0.1.0",
+  "description": "Cidade da Live: jogo de navegador para lives no TikTok (seguidores viram moradores chibi)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "simulacao": "node server.js --simulacao"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "tiktok-live-connector": "^2.5.0",
+    "ws": "^8.18.2"
+  }
+}

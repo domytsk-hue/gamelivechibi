@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cidade da Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <div id="palco">
+    <canvas id="tela" width="1080" height="1920"></canvas>
+    <div id="carregando">Construindo a cidade…</div>
+  </div>
+
+  <!-- Painel de simulação: aparece com ?painel=1 (ou tecla P). Não aparece na live. -->
+  <aside id="painel" hidden>
+    <h1>Painel de teste</h1>
+    <p id="status" class="status">…</p>
+
+    <label>Nome do espectador
+      <div class="linha"><input id="nome" placeholder="aleatório"><button id="sortear" title="Sortear nome">🎲</button></div>
+    </label>
+
+    <h2>Interações</h2>
+    <div class="grade">
+      <button data-ev="seguir">➕ Seguir</button>
+      <button data-ev="curtir" data-qtd="15">❤️ 15 curtidas</button>
+      <button data-ev="curtir" data-qtd="250">❤️ 250 curtidas</button>
+      <button data-ev="curtir" data-qtd="1000">❤️ 1000 curtidas</button>
+      <button data-ev="compartilhar">🔁 Compartilhar</button>
+      <button data-ev="chat">💬 Comentar</button>
+    </div>
+    <input id="texto" placeholder="texto do comentário" value="oi gente!! 😍">
+
+    <h2>Presentes</h2>
+    <div class="grade">
+      <button data-gift="Rose" data-moedas="1">🌹 Rosa (1)</button>
+      <button data-gift="Rose" data-moedas="1" data-qtd="5">🌹 Rosa ×5</button>
+      <button data-gift="TikTok" data-moedas="1">🎵 TikTok (1)</button>
+      <button data-gift="Finger Heart" data-moedas="5">🫰 Finger Heart (5)</button>
+      <button data-gift="Doughnut" data-moedas="30">🍩 Doughnut (30)</button>
+      <button data-gift="Hat and Mustache" data-moedas="99">🎩 Chapéu (99)</button>
+      <button data-gift="Corgi" data-moedas="299">🐶 Corgi (299)</button>
+      <button data-gift="Lion" data-moedas="29999">🦁 Lion (29999)</button>
+    </div>
+
+    <h2>Testes rápidos</h2>
+    <div class="grade">
+      <button id="chuva">🚌 10 seguidores</button>
+      <button id="auto">▶️ Live automática</button>
+    </div>
+
+    <h2>Cidade</h2>
+    <div class="grade">
+      <button id="exportar">💾 Baixar cidade</button>
+      <button id="importarBtn">📂 Carregar cidade</button>
+      <button id="resetar" class="perigo">🗑️ Zerar cidade</button>
+    </div>
+    <input id="importar" type="file" accept=".json" hidden>
+    <p class="dica">Na live (OBS / TikTok LIVE Studio) use o endereço sem <code>?painel=1</code>. As regras dos presentes ficam em <code>public/config.js</code>.</p>
+  </aside>
+
+  <script src="config.js"></script>
+  <script src="js/mapa.js"></script>
+  <script src="js/bonecos.js"></script>
+  <script src="js/mundo.js"></script>
+  <script src="js/jogo.js"></script>
+  <script src="js/painel.js"></script>
+</body>
+</html>
