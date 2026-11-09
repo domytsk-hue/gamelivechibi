@@ -2,7 +2,7 @@
 //  CONFIGURAÇÃO DO JOGO — edite à vontade e recarregue a página
 // ============================================================
 window.CONFIG = {
-  titulo: 'CIDADE DA LIVE',
+  titulo: 'TikCity',
 
   // Nome em cima do boneco: 'usuario' (@ do TikTok) ou 'apelido' (nome de exibição)
   nomeExibido: 'usuario',

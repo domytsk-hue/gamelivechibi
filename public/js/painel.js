@@ -43,7 +43,7 @@
   $auto.onclick = () => { if (auto) { clearTimeout(auto); auto = null; $auto.classList.remove('ativo'); $auto.textContent = '▶️ Live automática'; } else { passo(); $auto.classList.add('ativo'); $auto.textContent = '⏸️ Parar live automática'; } };
 
   // salvar / carregar / zerar
-  document.getElementById('exportar').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JOGO.exportar()], { type: 'application/json' })); a.download = 'cidade-da-live.json'; a.click(); };
+  document.getElementById('exportar').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JOGO.exportar()], { type: 'application/json' })); a.download = 'tikcity.json'; a.click(); };
   const $imp = document.getElementById('importar');
   document.getElementById('importarBtn').onclick = () => $imp.click();
   $imp.onchange = async () => { const f = $imp.files[0]; if (!f) return; try { JOGO.importar(await f.text()); } catch (e) { alert('Não consegui carregar: ' + e.message); } $imp.value = ''; };

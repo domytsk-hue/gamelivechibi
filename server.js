@@ -1,5 +1,5 @@
 // ============================================================
-//  Servidor da Cidade da Live
+//  Servidor da TikCity
 //  - serve o jogo em http://localhost:3000
 //  - escuta a live do TikTok (TikTok-Live-Connector) e manda os eventos para o jogo
 //  - guarda a cidade em data/cidade.json
@@ -108,7 +108,7 @@ async function salvarPresentes(conn) {
 
 server.listen(PORTA, () => {
   console.log('');
-  console.log('  🏙️  Cidade da Live rodando!');
+  console.log('  🏙️  TikCity rodando!');
   console.log(`  Jogo (para o OBS / LIVE Studio):  http://localhost:${PORTA}`);
   console.log(`  Jogo + painel de teste:           http://localhost:${PORTA}/?painel=1`);
   console.log('');

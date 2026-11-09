@@ -1,4 +1,4 @@
-# Cidade da Live 🏙️
+# TikCity 🏙️
 
 Jogo de navegador para lives no TikTok. Quem segue a live vira um bonequinho chibi que chega de ônibus na rodoviária da cidade, ganha terreno com curtidas e troca de roupa com presentes. A tela é vertical (1080×1920) e fica pronta para colocar no OBS ou no TikTok LIVE Studio.
 

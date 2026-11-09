@@ -1,7 +1,7 @@
 {
-  "name": "gamelivechibi",
+  "name": "tikcity",
   "version": "0.1.0",
-  "description": "Cidade da Live: jogo de navegador para lives no TikTok (seguidores viram moradores chibi)",
+  "description": "TikCity: jogo de navegador para lives no TikTok (seguidores viram moradores chibi)",
   "type": "module",
   "main": "server.js",
   "scripts": {

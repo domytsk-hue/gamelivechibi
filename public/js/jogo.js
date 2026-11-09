@@ -1,5 +1,5 @@
 // ============================================================
-//  Cidade da Live — lógica do jogo, câmera e desenho da tela 9:16
+//  TikCity — lógica do jogo, câmera e desenho da tela 9:16
 // ============================================================
 (() => {
 const CFG = window.CONFIG;
