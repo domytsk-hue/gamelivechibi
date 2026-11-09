@@ -40,6 +40,8 @@ Também dá para abrir `public/index.html` direto no navegador (dois cliques) e 
 
 ## Usar na live
 
+> 📖 Guia completo (requisitos da conta, LIVE Studio x OBS, chave de transmissão, testes e problemas comuns): **[docs/COMO-FAZER-LIVE.md](docs/COMO-FAZER-LIVE.md)**
+
 1. Coloque seu usuário do TikTok (sem @) em `config.servidor.json`, ou rode direto:
 
 ```bash
