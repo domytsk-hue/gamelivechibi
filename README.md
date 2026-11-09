@@ -22,6 +22,8 @@ Jogo de navegador para lives no TikTok. Quem segue a live vira um bonequinho chi
 | **10.000+ moedas** | casa vira prédio na hora + roupa lendária + festa |
 | **Especiais** | Confetti e Money Gun: + festa · Óculos de sol: óculos escuros · Bolo: roupa Festa + festa · Planeta e Foguete: prédio + Astronauta · Leão: prédio + Realeza · Universo: prédio + lendária + todos na tela ganham acessório |
 
+Cada prêmio deixa a casa com um visual próprio: **Casa Estrela** (inscrição), **Casa de Doce** (Bolo), **Casa de Praia** (Óculos de sol), **Casa da Festa** (Confetti, Money Gun), **Mansão** (1.000 a 9.999 moedas), **Base Espacial** (Planeta, Foguete), **Castelo** (Leão) e **Torre Galáxia** (Universo, 10.000+). Quem ganha casa só com curtidas fica com a casa padrão. Os desenhos ficam em `public/js/casas-tema.js` e o tema de cada prêmio em `config.js` (`tema: '...'`).
+
 No topo da tela um painel troca de página a cada 8 segundos mostrando essas regras para quem está assistindo.
 
 Onde cada boneco fica: chega de ônibus → praça em frente à rodoviária → quando a praça lota, passeia pelas ruas → quem tem casa fica no portão.
@@ -86,6 +88,7 @@ public/config.js     regras do jogo (presentes, curtidas, chances)
 public/js/mapa.js    desenho da cidade (mapa oficial v4, isométrico)
 public/js/bonecos.js bonecos chibi "Vinil brilhante" e guarda-roupa
 public/js/mundo.js   monta a cidade em camadas para os bonecos passarem atrás/na frente
+public/js/casas-tema.js  casas temáticas de cada prêmio
 public/js/jogo.js    regras, ônibus, câmera, etiquetas, avisos e efeitos
 public/js/painel.js  painel de simulação
 ```

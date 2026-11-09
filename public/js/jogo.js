@@ -225,9 +225,10 @@ function darAcessorio(p, qual, quieto) {
   const opts = ACCS.filter(([a]) => a !== p.extra); const [a, nome] = certo || rand(opts);
   p.extra = a; atualizarSprite(p); if (!quieto) toast(nomeDe(p), `ganhou acessório: ${nome}`, '#ffd84a'); fx.burst(p.id, 10, '#ffd84a'); salvar();
 }
-function virarPredio(p) {
-  if (p.terreno == null) darTerreno(p, 'presente');
+function virarPredio(p, tema) {
+  if (p.terreno == null) darTerreno(p, 'presente', tema);
   if (p.terreno == null) return;
+  aplicarTema(p, tema);
   const st = S.plots[p.terreno]; if (st.andares >= 3) return;
   st.andares = 3;
   if (st.estado === 'casa') { rebuildPlot(p.terreno); toast(nomeDe(p), 'agora mora num prédio!', '#c06bff'); focarPlot(p.terreno, 3.5); fx.confete(60); }
@@ -245,13 +246,21 @@ function acenderLuz(p) {
   if (!ents.has(p.id)) spawnEnt(p, 'portao');
   if (novo) { toast(nomeDe(p), 'chegou em casa e acendeu a luz', '#ffd27a', true); const e = ents.get(p.id); if (e) e.hop = 0.5; }
 }
-function darTerreno(p, motivo) {
-  if (p.terreno != null) return melhorarCasa(p);
+// muda o visual da casa para o tema do prêmio (casas-tema.js)
+function aplicarTema(p, tema) {
+  if (!tema || !TEMAS[tema] || p.terreno == null) return;
+  const st = S.plots[p.terreno]; if (st.tema === tema) return;
+  st.tema = tema; rebuildPlot(p.terreno);
+  if (st.estado === 'casa') { toast(nomeDe(p), `ganhou a ${TEMAS[tema].nome}!`, '#ffcc33'); focarPlot(p.terreno, 3.5); }
+  salvar();
+}
+function darTerreno(p, motivo, tema) {
+  if (p.terreno != null) { aplicarTema(p, tema); return melhorarCasa(p); }
   const livres = S.plots.map((s, i) => [s, i]).filter(([s]) => s.estado === 'venda').map(([, i]) => i);
   if (!livres.length) { toast(nomeDe(p), 'queria um terreno, mas a cidade lotou!', '#ff8a5c'); return; }
   livres.sort((a, b) => dist15(a) - dist15(b));
   const i = rand(livres.slice(0, 3));
-  p.terreno = i; Object.assign(S.plots[i], { estado: 'obra', dono: p.id, andares: 1, obraFim: now() + (CFG.tempoObraSegundos || 20) * 1000 });
+  p.terreno = i; Object.assign(S.plots[i], { estado: 'obra', dono: p.id, andares: 1, tema: tema && TEMAS[tema] ? tema : null, obraFim: now() + (CFG.tempoObraSegundos || 20) * 1000 });
   rebuildPlot(i);
   ensureMorador(p);
   const e = ents.get(p.id); if (e && e.mode !== 'onibus' && e.after !== 'sumir') { releaseSlot(e); e.path = routeToGate([e.x, e.y], i); e.after = 'casa'; e.mode = 'andando'; }
@@ -274,7 +283,7 @@ function tickObras() {
   S.plots.forEach((st, i) => {
     if (st.estado === 'obra' && now() >= st.obraFim) {
       st.estado = 'casa'; rebuildPlot(i);
-      const p = S.pessoas[st.dono]; toast(p ? nomeDe(p) : '?', 'tem casa nova pronta!', '#86d466'); focarPlot(i, 3.5); fx.confete(80); salvar();
+      const p = S.pessoas[st.dono]; const T = st.tema && TEMAS[st.tema]; toast(p ? nomeDe(p) : '?', T ? `${T.nome} pronta!` : 'tem casa nova pronta!', '#86d466'); focarPlot(i, 3.5); fx.confete(80); salvar();
       if (p) checarCurtidas(p);
     }
   });
@@ -283,9 +292,9 @@ function executar(p, acoes, qtd) {
   for (const a of acoes || []) {
     if (a.acao === 'roupa') darRoupa(p, a.raridadeMinima, qtd, a.nome);
     else if (a.acao === 'acessorio') darAcessorio(p, a.qual);
-    else if (a.acao === 'predio') virarPredio(p);
+    else if (a.acao === 'predio') virarPredio(p, a.tema);
     else if (a.acao === 'acessorioParaTodos') acessorioParaTodos();
-    else if (a.acao === 'terreno') darTerreno(p, 'presente');
+    else if (a.acao === 'terreno') darTerreno(p, 'presente', a.tema);
     else if (a.acao === 'melhorarCasa') { if (p.terreno != null) melhorarCasa(p); }
     else if (a.acao === 'curtidas') { p.curtidas += (a.qtd || 0) * (qtd || 1); checarCurtidas(p); }
     else if (a.acao === 'festa') fx.festa();

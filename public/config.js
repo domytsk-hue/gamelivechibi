@@ -19,7 +19,7 @@ window.CONFIG = {
     ] },
     { titulo: 'GANHE AJUDANDO A LIVE', cor: '#4aa3ff', itens: [
       ['🔁', 'Compartilhar', 'acessório'],
-      ['⭐', 'Inscrever-se', 'terreno + roupa épica'],
+      ['⭐', 'Inscrever-se', 'Casa Estrela + roupa épica'],
       ['💜', 'Fã-clube', 'roupa rara'],
       ['🎁', 'Baú de moedas', 'festa + acessório'],
     ] },
@@ -30,10 +30,10 @@ window.CONFIG = {
       ['💎', '100+ moedas', 'terreno + roupa épica'],
     ] },
     { titulo: 'PRESENTES ESPECIAIS', cor: '#ffcc33', itens: [
-      ['😎', 'Óculos de sol', 'óculos escuros'],
-      ['🎂', 'Bolo', 'roupa Festa + festa'],
-      ['🚀', 'Planeta / Foguete', 'prédio + Astronauta'],
-      ['🦁', 'Leão', 'prédio + Realeza'],
+      ['😎', 'Óculos de sol', 'Casa de Praia + óculos'],
+      ['🎂', 'Bolo', 'Casa de Doce + roupa Festa'],
+      ['🚀', 'Planeta / Foguete', 'Base Espacial + Astronauta'],
+      ['🦁', 'Leão', 'Castelo + Realeza'],
     ] },
   ],
 
@@ -57,8 +57,10 @@ window.CONFIG = {
   //   { acao: 'acessorio', qual: 'oculos' }           acessório certo (fone, bone, oculos, laco, flores, bandana,
   //                                                   chef, mago, cartola, coroa, aureola, capacete)
   //   { acao: 'terreno' }                             ganha terreno (se já tem, melhora a casa)
+  //   { acao: 'terreno', tema: 'doce' }               ...e a casa ganha o visual do tema:
+  //        estrela, doce, praia, festa, mansao (casas)  ·  espacial, castelo, galaxia (prédios, use com 'predio')
   //   { acao: 'melhorarCasa' }                        sobe a casa de nível
-  //   { acao: 'predio' }                              casa vira prédio na hora (ganha terreno antes, se não tiver)
+  //   { acao: 'predio', tema: 'castelo' }             casa vira prédio na hora (ganha terreno antes, se não tiver)
   //   { acao: 'acessorioParaTodos' }                  todos os bonecos na tela ganham acessório
   //   { acao: 'curtidas', qtd: 100 }                  conta como curtidas extras
   //   { acao: 'festa' }                               confete e fogos na tela
@@ -69,23 +71,23 @@ window.CONFIG = {
     porNome: {
       'rose': [{ acao: 'roupa' }],
       'rosa': [{ acao: 'roupa' }],
-      'confetti': [{ acao: 'terreno' }, { acao: 'roupa', raridadeMinima: 'epico' }, { acao: 'festa' }],
-      'sunglasses': [{ acao: 'terreno' }, { acao: 'roupa', raridadeMinima: 'epico' }, { acao: 'acessorio', qual: 'oculos' }],
-      'birthday cake': [{ acao: 'terreno' }, { acao: 'roupa', nome: 'Festa' }, { acao: 'festa' }],
-      'money gun': [{ acao: 'terreno' }, { acao: 'roupa', raridadeMinima: 'epico' }, { acao: 'festa' }],
-      'planet': [{ acao: 'predio' }, { acao: 'roupa', nome: 'Astronauta' }, { acao: 'festa' }],
-      'rocket': [{ acao: 'predio' }, { acao: 'roupa', nome: 'Astronauta' }, { acao: 'festa' }],
-      'lion': [{ acao: 'predio' }, { acao: 'roupa', nome: 'Realeza' }, { acao: 'festa' }],
-      'tiktok universe': [{ acao: 'predio' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }, { acao: 'acessorioParaTodos' }],
-      'universe': [{ acao: 'predio' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }, { acao: 'acessorioParaTodos' }],
+      'confetti': [{ acao: 'terreno', tema: 'festa' }, { acao: 'roupa', raridadeMinima: 'epico' }, { acao: 'festa' }],
+      'sunglasses': [{ acao: 'terreno', tema: 'praia' }, { acao: 'roupa', raridadeMinima: 'epico' }, { acao: 'acessorio', qual: 'oculos' }],
+      'birthday cake': [{ acao: 'terreno', tema: 'doce' }, { acao: 'roupa', nome: 'Festa' }, { acao: 'festa' }],
+      'money gun': [{ acao: 'terreno', tema: 'festa' }, { acao: 'roupa', raridadeMinima: 'epico' }, { acao: 'festa' }],
+      'planet': [{ acao: 'predio', tema: 'espacial' }, { acao: 'roupa', nome: 'Astronauta' }, { acao: 'festa' }],
+      'rocket': [{ acao: 'predio', tema: 'espacial' }, { acao: 'roupa', nome: 'Astronauta' }, { acao: 'festa' }],
+      'lion': [{ acao: 'predio', tema: 'castelo' }, { acao: 'roupa', nome: 'Realeza' }, { acao: 'festa' }],
+      'tiktok universe': [{ acao: 'predio', tema: 'galaxia' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }, { acao: 'acessorioParaTodos' }],
+      'universe': [{ acao: 'predio', tema: 'galaxia' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }, { acao: 'acessorioParaTodos' }],
     },
     // 2º: pelo valor em moedas (moedas do presente × quantidade)
     porMoedas: [
       { de: 1, ate: 9, acoes: [{ acao: 'acessorio' }] },
       { de: 10, ate: 99, acoes: [{ acao: 'roupa', raridadeMinima: 'raro' }] },
       { de: 100, ate: 999, acoes: [{ acao: 'terreno' }, { acao: 'roupa', raridadeMinima: 'epico' }] },
-      { de: 1000, ate: 9999, acoes: [{ acao: 'terreno' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }] },
-      { de: 10000, ate: Infinity, acoes: [{ acao: 'predio' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }] },
+      { de: 1000, ate: 9999, acoes: [{ acao: 'terreno', tema: 'mansao' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }] },
+      { de: 10000, ate: Infinity, acoes: [{ acao: 'predio', tema: 'galaxia' }, { acao: 'roupa', raridadeMinima: 'lendario' }, { acao: 'festa' }] },
     ],
   },
 
@@ -93,7 +95,7 @@ window.CONFIG = {
   // Mesmas ações dos presentes. Deixe [] para não fazer nada.
   compartilhar: [{ acao: 'acessorio' }],
   minutosEntreCompartilhar: 5,   // 1 acessório por pessoa a cada X minutos (evita spam)
-  inscrever: [{ acao: 'terreno' }, { acao: 'roupa', raridadeMinima: 'epico' }],
+  inscrever: [{ acao: 'terreno', tema: 'estrela' }, { acao: 'roupa', raridadeMinima: 'epico' }],
   faclube: [{ acao: 'roupa', raridadeMinima: 'raro' }],
   bau: [{ acao: 'festa' }, { acao: 'acessorio' }],
   entrarAcendeLuz: true,         // quem tem casa e entra na live: sai pelo portão e a luz da casa acende
