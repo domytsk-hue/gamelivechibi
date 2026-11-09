@@ -19,6 +19,10 @@
   painel.querySelectorAll('[data-ev]').forEach((b) => b.onclick = () => {
     const u = user(), t = b.dataset.ev;
     if (t === 'curtir') return curtir(u, +b.dataset.qtd);
+    if (t === 'entrar' && !$nome.value.trim()) { // sem nome: escolhe alguém que já tem casa
+      const donos = Object.values(JOGO.estado().pessoas).filter((p) => p.terreno != null);
+      if (donos.length) { const p = donos[Math.floor(Math.random() * donos.length)]; return JOGO.evento({ tipo: 'entrar', user: { id: p.id, usuario: p.usuario, apelido: p.apelido } }); }
+    }
     JOGO.evento({ tipo: t, user: u, texto: $texto.value });
   });
   painel.querySelectorAll('[data-gift]').forEach((b) => b.onclick = () => {
