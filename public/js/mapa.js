@@ -222,12 +222,17 @@ function lawn(c, gx, gy, w, d, col) {
   for (let i = 0; i < w * d * 10; i++) { const p = iso(gx + 0.1 + hash(gx, gy, i) * (w - 0.2), gy + 0.1 + hash(gy, gx, i + 3) * (d - 0.2), 5.5); c.fillStyle = 'rgba(40,90,30,0.18)'; c.fillRect(p[0], p[1], 2, 1.5); }
 }
 function forSaleSign(c, gx, gy) {
-  const z = 5; const a = iso(gx, gy, z);
-  c.fillStyle = '#7a4e2b'; c.fillRect(a[0] - 1.5, a[1] - 26, 3, 26);
-  const q = P3([[gx - 0.32, gy, z + 22], [gx + 0.32, gy, z + 22], [gx + 0.32, gy, z + 42], [gx - 0.32, gy, z + 42]]);
+  // placa de frente (ao longo do eixo x); o texto é medido para caber sempre dentro da placa
+  const z = 5, hw = 0.72; const a = iso(gx, gy, z);
+  c.fillStyle = '#7a4e2b'; c.fillRect(a[0] - 1.5, a[1] - 24, 3, 24);
+  const q = P3([[gx - hw, gy, z + 20], [gx + hw, gy, z + 20], [gx + hw, gy, z + 42], [gx - hw, gy, z + 42]]);
   fillP(c, q, '#ffffff', 'rgba(40,30,50,0.6)', 1.5);
-  const s = P3([[gx - 0.28, gy, z + 35], [gx + 0.28, gy, z + 35], [gx + 0.28, gy, z + 40], [gx - 0.28, gy, z + 40]]); fillP(c, s, '#e8483a');
-  c.save(); const o = iso(gx - 0.25, gy, z + 26); c.transform(1, 0.5, 0, 1, o[0], o[1]); c.font = 'bold 8px "Fredoka", "DejaVu Sans", sans-serif'; c.fillStyle = '#2f2a3a'; c.textAlign = 'left'; c.fillText('VENDE-SE', 0, 0); c.restore();
+  const s = P3([[gx - hw + 0.05, gy, z + 35], [gx + hw - 0.05, gy, z + 35], [gx + hw - 0.05, gy, z + 40], [gx - hw + 0.05, gy, z + 40]]); fillP(c, s, '#e8483a');
+  const maxW = (hw * 2 - 0.16) * TW / 2; // largura útil da placa em pixels de tela
+  c.save(); const o = iso(gx, gy, z + 27.5); c.transform(1, 0.5, 0, 1, o[0], o[1]);
+  let fs = 9; c.font = `700 ${fs}px "Fredoka", "DejaVu Sans", sans-serif`;
+  const w = c.measureText('VENDE-SE').width; if (w > maxW) { fs = Math.max(5, fs * maxW / w); c.font = `700 ${fs}px "Fredoka", "DejaVu Sans", sans-serif`; }
+  c.fillStyle = '#2f2a3a'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('VENDE-SE', 0, 0, maxW); c.restore();
 }
 function construction(c, gx, gy) {
   const z = 5;
