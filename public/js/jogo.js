@@ -7,6 +7,7 @@ const W = 1080, H = 1920;
 const tela = document.getElementById('tela');
 const ctx = tela.getContext('2d');
 const FONT = '"Fredoka", "DejaVu Sans", Verdana, sans-serif';
+const EMOJI = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 const CH_S = 0.6, CH_RES = 3.2;            // escala e resolução dos bonecos
 const BG_RES = 1.5;
 const RAR_ORDER = ['comum', 'raro', 'epico', 'lendario'];
@@ -204,7 +205,11 @@ function rollRaridade(min) {
   const opts = RAR_ORDER.slice(mi); const tot = opts.reduce((a, r) => a + (CFG.chances[r] || 0), 0);
   let x = Math.random() * (tot || 1); for (const r of opts) { x -= CFG.chances[r] || 0; if (x <= 0) return r; } return opts[opts.length - 1];
 }
-function darRoupa(p, min, tentativas = 1) {
+function darRoupa(p, min, tentativas = 1, nome) {
+  if (nome) {
+    const k = OUTFITS.findIndex((o) => o[1].toLowerCase() === String(nome).toLowerCase());
+    if (k >= 0) { const o = OUTFITS[k]; p.roupa = k; atualizarSprite(p); toast(nomeDe(p), `ganhou roupa ${RARN[o[0]]}: ${o[1]}`, RARC[o[0]]); fx.burst(p.id, o[0] === 'lendario' ? 40 : 24, RARC[o[0]]); focarEnt(p.id, 2.2, 3); salvar(); return; }
+  }
   let best = null;
   for (let i = 0; i < Math.max(1, Math.min(10, tentativas)); i++) { const r = rollRaridade(min); if (!best || RAR_ORDER.indexOf(r) > RAR_ORDER.indexOf(best)) best = r; }
   const opts = OUTFITS.map((o, k) => [o, k]).filter(([o, k]) => o[0] === best && k !== p.roupa);
@@ -215,17 +220,55 @@ function darRoupa(p, min, tentativas = 1) {
   if (o[0] === 'lendario' || o[0] === 'epico') focarEnt(p.id, 2.2, 3);
   salvar();
 }
-function darAcessorio(p) {
-  const opts = ACCS.filter(([a]) => a !== p.extra); const [a, nome] = rand(opts);
-  p.extra = a; atualizarSprite(p); toast(nomeDe(p), `ganhou acessório: ${nome}`, '#ffd84a'); fx.burst(p.id, 10, '#ffd84a'); salvar();
+function darAcessorio(p, qual, quieto) {
+  const certo = qual && ACCS.find(([a]) => a === qual);
+  const opts = ACCS.filter(([a]) => a !== p.extra); const [a, nome] = certo || rand(opts);
+  p.extra = a; atualizarSprite(p); if (!quieto) toast(nomeDe(p), `ganhou acessório: ${nome}`, '#ffd84a'); fx.burst(p.id, 10, '#ffd84a'); salvar();
 }
-function darTerreno(p, motivo) {
-  if (p.terreno != null) return melhorarCasa(p);
+function virarPredio(p, tema) {
+  if (p.terreno == null) darTerreno(p, 'presente', tema);
+  if (p.terreno == null) return;
+  aplicarTema(p, tema);
+  const st = S.plots[p.terreno]; if (st.andares >= 3) return;
+  st.andares = 3;
+  if (st.estado === 'casa') { rebuildPlot(p.terreno); toast(nomeDe(p), 'agora mora num prédio!', '#c06bff'); focarPlot(p.terreno, 3.5); fx.confete(60); }
+  salvar();
+}
+function acessorioParaTodos() {
+  const lista = [...ents.values()].filter((e) => e.mode !== 'onibus' && e.mode !== 'sumindo' && e.after !== 'sumir').map((e) => S.pessoas[e.id]).filter(Boolean);
+  lista.forEach((q) => darAcessorio(q, null, true));
+  toast(CFG.titulo, `${lista.length} moradores ganharam acessório!`, '#ffd84a');
+}
+function acenderLuz(p) {
+  if (p.terreno == null) return;
+  const st = S.plots[p.terreno]; const novo = !(st.luzAte > now());
+  st.luzAte = now() + (CFG.minutosAteIrEmbora || 20) * 60000;
+  if (!ents.has(p.id)) spawnEnt(p, 'portao');
+  if (novo) { toast(nomeDe(p), 'chegou em casa e acendeu a luz', '#ffd27a', true); const e = ents.get(p.id); if (e) e.hop = 0.5; }
+}
+// muda o visual da casa para o tema do prêmio (casas-tema.js)
+function aplicarTema(p, tema) {
+  if (!tema || !TEMAS[tema] || p.terreno == null) return;
+  const st = S.plots[p.terreno]; if (st.tema === tema) return;
+  st.tema = tema; rebuildPlot(p.terreno);
+  if (st.estado === 'casa') { toast(nomeDe(p), `ganhou a ${TEMAS[tema].nome}!`, '#ffcc33'); focarPlot(p.terreno, 3.5); }
+  salvar();
+}
+function darTerreno(p, motivo, tema) {
+  if (p.terreno != null) { aplicarTema(p, tema); return melhorarCasa(p); }
   const livres = S.plots.map((s, i) => [s, i]).filter(([s]) => s.estado === 'venda').map(([, i]) => i);
-  if (!livres.length) { toast(nomeDe(p), 'queria um terreno, mas a cidade lotou!', '#ff8a5c'); return; }
+  if (!livres.length) {
+    // cidade lotada: o jeito de ganhar terreno agora é o leilão (avisa no máximo 1 vez a cada 2 min)
+    if (!p.avisoLotou || now() - p.avisoLotou > 120000) {
+      p.avisoLotou = now();
+      const i = leilaoAtivo() ? alvoLeilao() : -1;
+      toast(nomeDe(p), i >= 0 ? `cidade lotou! faça ${fmt(metaLeilao(i))} pts para desafiar o Nº ${i + 1}` : 'queria um terreno, mas a cidade lotou!', '#ff8a5c');
+    }
+    return;
+  }
   livres.sort((a, b) => dist15(a) - dist15(b));
   const i = rand(livres.slice(0, 3));
-  p.terreno = i; Object.assign(S.plots[i], { estado: 'obra', dono: p.id, andares: 1, obraFim: now() + (CFG.tempoObraSegundos || 20) * 1000 });
+  p.terreno = i; Object.assign(S.plots[i], { estado: 'obra', dono: p.id, andares: 1, tema: tema && TEMAS[tema] ? tema : null, obraFim: now() + (CFG.tempoObraSegundos || 20) * 1000 });
   rebuildPlot(i);
   ensureMorador(p);
   const e = ents.get(p.id); if (e && e.mode !== 'onibus' && e.after !== 'sumir') { releaseSlot(e); e.path = routeToGate([e.x, e.y], i); e.after = 'casa'; e.mode = 'andando'; }
@@ -248,16 +291,94 @@ function tickObras() {
   S.plots.forEach((st, i) => {
     if (st.estado === 'obra' && now() >= st.obraFim) {
       st.estado = 'casa'; rebuildPlot(i);
-      const p = S.pessoas[st.dono]; toast(p ? nomeDe(p) : '?', 'tem casa nova pronta!', '#86d466'); focarPlot(i, 3.5); fx.confete(80); salvar();
+      const p = S.pessoas[st.dono]; const T = st.tema && TEMAS[st.tema]; toast(p ? nomeDe(p) : '?', T ? `${T.nome} pronta!` : 'tem casa nova pronta!', '#86d466'); focarPlot(i, 3.5); fx.confete(80); salvar();
       if (p) checarCurtidas(p);
     }
   });
 }
+// ---------------- leilão (cidade lotada) ----------------
+// Pontos = curtidas + moedas de presentes + bônus de inscrição. Quando não sobra terreno,
+// quem não tem casa e passa o dono mais fraco por X% abre um desafio; o dono tem N segundos
+// para se defender. No fim, quem tiver mais pontos fica com o terreno.
+const LC = () => CFG.leilao || {};
+const fmt = (n) => Math.round(n).toLocaleString('pt-BR');
+function pontos(p) {
+  if (!p) return 0; const c = LC();
+  return Math.floor((p.curtidas || 0) * (c.pontosPorCurtida ?? 1) + (p.moedas || 0) * (c.pontosPorMoeda ?? 10) + (p.bonus || 0));
+}
+function cidadeLotada() { return S.plots.every((st) => st.estado !== 'venda'); }
+function leilaoAtivo() { return LC().ativo !== false && cidadeLotada(); }
+// terreno do dono com menos pontos (fora os protegidos e o que já está em disputa)
+function alvoLeilao() {
+  let best = -1, bp = Infinity;
+  S.plots.forEach((st, i) => {
+    if (st.estado === 'venda' || (st.protegidoAte || 0) > now() || (S.leilao && S.leilao.terreno === i)) return;
+    const pt = pontos(S.pessoas[st.dono]); if (pt < bp) { bp = pt; best = i; }
+  });
+  return best;
+}
+// pontos que alguém precisa ter para desafiar o terreno i
+function metaLeilao(i) {
+  const pt = pontos(S.pessoas[S.plots[i].dono]);
+  const minimo = (CFG.curtidas.terreno || 1000) * (LC().pontosPorCurtida ?? 1);
+  return Math.max(minimo, pt + 1, Math.ceil(pt * (1 + (LC().margemPorcento ?? 10) / 100)));
+}
+function tickLeilao() {
+  const D = S.leilao;
+  if (D) {
+    const st = S.plots[D.terreno];
+    if (!st || st.dono !== D.dono || !S.pessoas[D.desafiante]) { S.leilao = null; salvar(); return; }
+    if (!D.focoFinal && D.fim - now() <= 10000) { D.focoFinal = true; focarPlot(D.terreno, 10); }
+    if (now() >= D.fim) resolverLeilao();
+    return;
+  }
+  if (!leilaoAtivo() || (S.leilaoPausaAte || 0) > now()) return; // pausa curta entre um desafio e outro
+  const i = alvoLeilao(); if (i < 0) return;
+  const meta = metaLeilao(i), lim = (LC().minutosAtivo || 20) * 60000;
+  const cand = Object.values(S.pessoas).filter((p) => p.terreno == null && now() - (p.visto || 0) < lim && pontos(p) >= meta).sort((a, b) => pontos(b) - pontos(a))[0];
+  if (cand) abrirDesafio(i, cand);
+}
+function abrirDesafio(i, p) {
+  const st = S.plots[i], dono = S.pessoas[st.dono];
+  S.leilao = { terreno: i, dono: st.dono, desafiante: p.id, inicio: now(), fim: now() + (LC().segundosDeDefesa || 60) * 1000 };
+  ensureMorador(p);
+  const e = ents.get(p.id); if (e && e.mode !== 'onibus' && e.after !== 'sumir') { releaseSlot(e); e.path = routeToGate([e.x, e.y], i); e.after = 'casa'; e.mode = 'andando'; }
+  if (dono && !ents.has(dono.id)) spawnEnt(dono, 'portao');
+  toast(nomeDe(p), `desafiou ${dono ? nomeDe(dono) : '?'} pelo terreno Nº ${i + 1}!`, '#ff5c5c');
+  toast(dono ? nomeDe(dono) : '?', `tem ${LC().segundosDeDefesa || 60}s para se defender!`, '#ff5c5c');
+  focarPlot(i, 5); salvar();
+}
+function resolverLeilao() {
+  const D = S.leilao; S.leilao = null; S.leilaoPausaAte = now() + 8000;
+  const i = D.terreno, st = S.plots[i], des = S.pessoas[D.desafiante], dono = S.pessoas[D.dono];
+  const prot = (LC().minutosDeProtecao ?? 3) * 60000;
+  if (des && des.terreno == null && pontos(des) > pontos(dono)) tomarTerreno(i, des, dono);
+  else {
+    st.protegidoAte = now() + prot;
+    toast(dono ? nomeDe(dono) : '?', `defendeu o terreno Nº ${i + 1}!`, '#5fd068');
+    fx.confete(80); focarPlot(i, 3.5);
+    const e = des && ents.get(des.id); if (e && e.mode !== 'onibus' && e.after !== 'sumir') destino(e);
+  }
+  salvar();
+}
+function tomarTerreno(i, novo, velho) {
+  const st = S.plots[i];
+  if (velho) { velho.terreno = null; const e = ents.get(velho.id); if (e && e.mode !== 'onibus' && e.after !== 'sumir') destino(e); }
+  Object.assign(st, { estado: 'obra', dono: novo.id, andares: 1, tema: null, luzAte: 0, protegidoAte: now() + (LC().minutosDeProtecao ?? 3) * 60000, obraFim: now() + (CFG.tempoObraSegundos || 20) * 1000 });
+  novo.terreno = i; rebuildPlot(i); ensureMorador(novo);
+  const e = ents.get(novo.id); if (e && e.mode !== 'onibus' && e.after !== 'sumir') { releaseSlot(e); e.path = routeToGate([e.x, e.y], i); e.after = 'casa'; e.mode = 'andando'; }
+  toast(nomeDe(novo), `venceu o desafio e tomou o terreno Nº ${i + 1}!`, '#ffcc33');
+  if (velho) toast(nomeDe(velho), 'perdeu o terreno e voltou para a praça', '#ff8a5c');
+  fx.festa(); focarPlot(i, 4);
+}
+
 function executar(p, acoes, qtd) {
   for (const a of acoes || []) {
-    if (a.acao === 'roupa') darRoupa(p, a.raridadeMinima, qtd);
-    else if (a.acao === 'acessorio') darAcessorio(p);
-    else if (a.acao === 'terreno') darTerreno(p, 'presente');
+    if (a.acao === 'roupa') darRoupa(p, a.raridadeMinima, qtd, a.nome);
+    else if (a.acao === 'acessorio') darAcessorio(p, a.qual);
+    else if (a.acao === 'predio') virarPredio(p, a.tema);
+    else if (a.acao === 'acessorioParaTodos') acessorioParaTodos();
+    else if (a.acao === 'terreno') darTerreno(p, 'presente', a.tema);
     else if (a.acao === 'melhorarCasa') { if (p.terreno != null) melhorarCasa(p); }
     else if (a.acao === 'curtidas') { p.curtidas += (a.qtd || 0) * (qtd || 1); checarCurtidas(p); }
     else if (a.acao === 'festa') fx.festa();
@@ -270,7 +391,7 @@ function evento(ev) {
   const p = pessoa(ev.user);
   if (ev.tipo === 'seguir') { if (p.morador && ents.has(p.id)) toast(nomeDe(p), 'seguiu a live!', COR_NOVO); ensureMorador(p, 'seguir'); }
   else if (ev.tipo === 'curtir') {
-    const n = Math.max(1, ev.qtd | 0); p.curtidas += n;
+    const n = Math.max(1, ev.qtd | 0); p.curtidas += n; p.ultCurtida = now();
     if (p.morador && !ents.has(p.id)) ensureMorador(p, 'curtir');
     fx.coracoes(p.id, Math.min(6, 1 + Math.floor(n / 5)));
     checarCurtidas(p); salvar();
@@ -279,6 +400,7 @@ function evento(ev) {
     const g = ev.presente || {}; const qtd = Math.max(1, g.qtd | 0); const nome = String(g.nome || 'presente');
     ensureMorador(p, 'presente');
     toast(nomeDe(p), `enviou ${qtd > 1 ? qtd + '× ' : ''}${nome}`, '#ff7aa8', true);
+    p.moedas = (p.moedas || 0) + Math.max(1, g.moedas | 0) * qtd; p.ultPresente = now(); // pontos do leilão
     const por = CFG.presentes.porNome[nome.toLowerCase()];
     let acoes = por;
     if (!acoes) { const total = (g.moedas || 1) * qtd; const f = CFG.presentes.porMoedas.find((x) => total >= x.de && total <= x.ate); acoes = f ? f.acoes : []; }
@@ -289,7 +411,18 @@ function evento(ev) {
     else if (p.morador && !ents.has(p.id)) ensureMorador(p, 'chat');
     const e = ents.get(p.id); if (e && CFG.balaoDeChat && ev.texto) e.bubble = { texto: String(ev.texto).slice(0, 60), ate: performance.now() + 6000 };
   }
-  else if (ev.tipo === 'compartilhar') { if (CFG.compartilhar && CFG.compartilhar.length) { ensureMorador(p, 'compartilhar'); toast(nomeDe(p), 'compartilhou a live!', '#4aa3ff', true); executar(p, CFG.compartilhar, 1); } }
+  else if (ev.tipo === 'compartilhar') {
+    if (CFG.compartilhar && CFG.compartilhar.length) {
+      ensureMorador(p, 'compartilhar'); toast(nomeDe(p), 'compartilhou a live!', '#4aa3ff', true);
+      const espera = (CFG.minutosEntreCompartilhar || 0) * 60000;
+      if (!p.ultCompart || now() - p.ultCompart >= espera) { p.ultCompart = now(); executar(p, CFG.compartilhar, 1); }
+    }
+  }
+  else if (ev.tipo === 'entrar') { if (CFG.entrarAcendeLuz && p.morador && p.terreno != null) acenderLuz(p); }
+  else if (ev.tipo === 'inscrever') { p.bonus = (p.bonus || 0) + (LC().pontosPorInscricao || 0); ensureMorador(p, 'inscrever'); toast(nomeDe(p), 'se inscreveu na live!', '#ffcc33'); executar(p, CFG.inscrever, 1); }
+  else if (ev.tipo === 'faclube') { ensureMorador(p, 'faclube'); toast(nomeDe(p), 'entrou no fã-clube!', '#c06bff'); executar(p, CFG.faclube, 1); }
+  else if (ev.tipo === 'bau') { ensureMorador(p, 'bau'); toast(nomeDe(p), 'abriu um baú de moedas!', '#ffcc33'); executar(p, CFG.bau, 1); }
+  if (p.terreno != null && S.plots[p.terreno].luzAte > now()) S.plots[p.terreno].luzAte = now() + (CFG.minutosAteIrEmbora || 20) * 60000;
 }
 
 // ---------------- câmera ----------------
@@ -395,18 +528,25 @@ function drawWorld(c, t) {
   c.restore();
 }
 function drawLabels(c, t) {
+  const lot = leilaoAtivo(), alvo = lot ? alvoLeilao() : -1;
   // terrenos
   S.plots.forEach((st, i) => {
     const wp = plotLabelPos(i, st); const [x, y] = toScreen(wp[0], wp[1]); if (x < -200 || x > W + 200 || y < -100 || y > H + 100) return;
     if (st.estado === 'venda') pillS(c, `À VENDA · Nº ${i + 1}`, x, y, '#e8483a', 17, '#d23a2a', '#ffffff');
     else {
       const p = S.pessoas[st.dono]; const nome = p ? nomeDe(p) : '?';
+      // selo do leilão em cima do nome
+      let selo = null;
+      if (S.leilao && S.leilao.terreno === i) selo = [`⚔️ EM DISPUTA · ${Math.max(0, Math.ceil((S.leilao.fim - now()) / 1000))}s`, '#ff5c5c', '#ffffff', '#c02a2a'];
+      else if (i === alvo) selo = [`🎯 MAIS FRACO · ${fmt(pontos(p))} pts`, '#ff8a5c', '#2a2340', '#ffe2d6'];
+      else if (lot && (st.protegidoAte || 0) > now()) selo = ['🛡️ PROTEGIDO', '#5fd068', '#2a2340', '#e3f8e5'];
       if (st.estado === 'obra') {
         const py = pillS(c, nome, x, y, '#4aa3ff', 21);
+        if (selo) pillS(c, selo[0], x, py - 52, selo[1], 17, selo[2], selo[3]);
         const k = Math.max(0, Math.min(1, 1 - (st.obraFim - now()) / ((CFG.tempoObraSegundos || 20) * 1000)));
         c.fillStyle = '#2a2340'; c.beginPath(); c.roundRect(x - 60, py - 26, 120, 16, 8); c.fill(); c.fillStyle = '#ffc43d'; c.beginPath(); c.roundRect(x - 58, py - 24, 116 * k, 12, 6); c.fill();
         c.font = `700 15px ${FONT}`; c.fillStyle = '#2a2340'; c.textAlign = 'center'; c.textBaseline = 'bottom'; c.fillText('EM OBRA ' + Math.round(k * 100) + '%', x, py - 30);
-      } else pillS(c, nome, x, y, p ? RARC[raridadeDe(p)] : '#e6e3f0', 21);
+      } else { const py = pillS(c, nome, x, y, p ? RARC[raridadeDe(p)] : '#e6e3f0', 21); if (selo) pillS(c, selo[0], x, py - 4, selo[1], 17, selo[2], selo[3]); }
     }
   });
   // bonecos
@@ -416,38 +556,133 @@ function drawLabels(c, t) {
     const [x, y] = toScreen(e._sx, e._sy + e.spr[e.f].top);
     if (x < -150 || x > W + 150 || y < -100 || y > H + 150) continue;
     c.globalAlpha = Math.max(0, Math.min(1, e.alpha));
-    const py = pillS(c, nomeDe(p), x, y, corTag(p), 22);
+    let py = pillS(c, nomeDe(p), x, y, corTag(p), 22);
+    const recente = now() - Math.max(p.ultCurtida || 0, p.ultPresente || 0) < 25000;
+    const pr = recente ? progresso(p, alvo) : null;
+    if (pr) {
+      const k = Math.min(1, pr.atual / pr.meta), bw = 170, by = py - 30;
+      c.fillStyle = '#2a2340'; c.beginPath(); c.roundRect(x - bw / 2, by, bw, 26, 13); c.fill();
+      const gr = c.createLinearGradient(x - bw / 2, 0, x + bw / 2, 0); gr.addColorStop(0, '#ff5c8a'); gr.addColorStop(1, '#ffcc33');
+      c.fillStyle = gr; c.beginPath(); c.roundRect(x - bw / 2 + 3, by + 3, Math.max(20, (bw - 6) * k), 20, 10); c.fill();
+      c.font = `700 16px ${FONT}`; c.fillStyle = '#ffffff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 3; c.strokeStyle = '#2a2340';
+      const tx = `${fmt(pr.atual)}/${fmt(pr.meta)} ${pr.un}`; c.strokeText(tx, x, by + 14); c.fillText(tx, x, by + 14);
+      py = by - 4;
+    }
     if (e.bubble) { if (e.bubble.ate < t) e.bubble = null; else bubble(c, e.bubble.texto, x, py - 4); }
     c.globalAlpha = 1;
   }
 }
 function panel(c, x, y, w, h, r = 28) { c.fillStyle = 'rgba(20,10,40,0.22)'; c.beginPath(); c.roundRect(x, y + 6, w, h, r); c.fill(); c.fillStyle = 'rgba(42,35,64,0.92)'; c.beginPath(); c.roundRect(x, y, w, h, r); c.fill(); c.strokeStyle = '#ffd84a'; c.lineWidth = 4; c.stroke(); }
+function metaCurtidas(p) {
+  const C = CFG.curtidas; if (p.terreno == null) return C.terreno;
+  const a = S.plots[p.terreno].andares; return a === 1 ? C.sobrado : a === 2 ? C.predio : null;
+}
+// o que a pessoa está correndo atrás agora: { atual, meta, rot, un } (ou null)
+function progresso(p, alvo) {
+  if (p.terreno == null && leilaoAtivo()) {
+    const i = alvo ?? alvoLeilao(); if (i < 0) return null;
+    return { atual: pontos(p), meta: metaLeilao(i), rot: `desafio Nº ${i + 1}`, un: 'pts' };
+  }
+  const m = metaCurtidas(p); if (!m) return null;
+  return { atual: p.curtidas, meta: m, rot: p.terreno == null ? 'terreno' : S.plots[p.terreno].andares === 1 ? 'sobrado' : 'prédio', un: '❤' };
+}
+// painel de regras: título + 4 itens (2×2); troca de página a cada N segundos com um deslize
+function drawRegras(c, t, y) {
+  const lot = leilaoAtivo(); const P = (CFG.painelDeRegras || []).filter((pg) => !pg.soQuandoLotar || lot); if (!P.length) return -14;
+  const seg = (CFG.segundosPorPagina || 8) * 1000, idx = Math.floor(t / seg) % P.length, k = (t % seg) / seg;
+  const x = 30, w = W - 60, h = 222;
+  c.fillStyle = 'rgba(20,10,40,0.22)'; c.beginPath(); c.roundRect(x, y + 6, w, h, 26); c.fill();
+  c.fillStyle = 'rgba(42,35,64,0.94)'; c.beginPath(); c.roundRect(x, y, w, h, 26); c.fill();
+  const pg = P[idx]; c.strokeStyle = pg.cor || '#ffd84a'; c.lineWidth = 4; c.stroke();
+  // entrada/saída da página
+  const tin = Math.min(1, (t % seg) / 350), tout = Math.min(1, (seg - (t % seg)) / 350), a = Math.min(tin, tout);
+  const dx = (1 - tin) * 40 - (1 - tout) * 40;
+  c.save(); c.beginPath(); c.roundRect(x, y, w, h, 26); c.clip();
+  c.globalAlpha = a; c.translate(dx, 0);
+  c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 28px ${FONT}`; c.fillStyle = pg.cor || '#ffd84a';
+  c.fillText(pg.titulo, x + 28, y + 34);
+  const itens = (pg.itens || []).slice(0, 4), cw = (w - 28 * 2 - 18) / 2;
+  itens.forEach(([ic, gat, pre], i) => {
+    const cx = x + 28 + (i % 2) * (cw + 18), cy = y + 62 + Math.floor(i / 2) * 76;
+    c.fillStyle = 'rgba(255,255,255,0.07)'; c.beginPath(); c.roundRect(cx, cy, cw, 66, 18); c.fill();
+    c.textAlign = 'center'; c.font = `34px ${EMOJI}`; c.fillStyle = '#ffffff'; c.fillText(ic, cx + 36, cy + 35);
+    c.textAlign = 'left'; c.font = `700 25px ${FONT}`; c.fillStyle = pg.cor || '#ffd84a'; c.fillText(gat, cx + 70, cy + 21, cw - 84);
+    c.font = `500 22px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText('→ ' + pre, cx + 70, cy + 47, cw - 84);
+  });
+  c.restore();
+  // pontinhos das páginas + barra do tempo
+  c.globalAlpha = 1; c.textBaseline = 'middle';
+  P.forEach((q, i) => { c.fillStyle = i === idx ? (q.cor || '#ffd84a') : 'rgba(255,255,255,0.25)'; c.beginPath(); c.arc(x + w - 30 - (P.length - 1 - i) * 22, y + 34, i === idx ? 7 : 5, 0, 7); c.fill(); });
+  c.fillStyle = pg.cor || '#ffd84a'; c.globalAlpha = 0.7; c.beginPath(); c.roundRect(x + 26, y + h - 9, (w - 52) * k, 4, 2); c.fill(); c.globalAlpha = 1;
+  return h;
+}
+// luz acesa nas casas de quem está na live
+function drawLuzes(c, t) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  S.plots.forEach((st, i) => {
+    if (!(st.luzAte > now()) || st.estado !== 'casa') return;
+    const [gx, gy] = PLOTS[i]; const alto = (st.andares || 1) >= 3 ? 90 : (st.andares || 1) * 30 + 10;
+    const [x, y] = toScreen(...iso(gx + 1.5, gy + 1.5, alto)); if (x < -200 || x > W + 200 || y < -200 || y > H + 200) return;
+    const r = 120 * cam.z / 1.6, pul = 0.85 + Math.sin(t / 500 + i) * 0.15;
+    const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(255,214,120,${0.75 * pul})`); g.addColorStop(1, 'rgba(255,190,90,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
+    const [dx2, dy2] = toScreen(...iso(...gateOf(i), 14)); const g2 = c.createRadialGradient(dx2, dy2, 0, dx2, dy2, 34 * cam.z / 1.6);
+    g2.addColorStop(0, 'rgba(255,230,150,0.9)'); g2.addColorStop(1, 'rgba(255,200,100,0)'); c.fillStyle = g2; c.beginPath(); c.arc(dx2, dy2, 34 * cam.z / 1.6, 0, 7); c.fill();
+  });
+  c.restore();
+}
 function drawHUD(c, t) {
   // título + números
   panel(c, 30, 30, W - 60, 104);
   c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 46px ${FONT}`; c.fillStyle = '#ffd84a'; c.fillText(CFG.titulo, 62, 84);
   const moradores = Object.values(S.pessoas).filter((p) => p.morador).length, casas = S.plots.filter((s) => s.estado !== 'venda').length;
-  c.textAlign = 'right'; c.font = `600 27px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText(`${moradores} moradores`, W - 62, 66); c.fillStyle = '#b9b0d8'; c.fillText(`${casas}/${PLOTS.length} casas`, W - 62, 102);
-  // regras
-  const R = CFG.regrasNaTela || []; const cw = (W - 60 - (R.length - 1) * 14) / Math.max(1, R.length);
-  R.forEach(([k, v], i) => {
-    const x = 30 + i * (cw + 14), y = 150; c.fillStyle = 'rgba(42,35,64,0.93)'; c.beginPath(); c.roundRect(x, y, cw, 88, 22); c.fill(); c.strokeStyle = ['#5fd068', '#ff5c8a', '#ffcc33'][i % 3]; c.lineWidth = 3.5; c.stroke();
-    c.textAlign = 'center'; c.font = `700 27px ${FONT}`; c.fillStyle = c.strokeStyle; c.fillText(k, x + cw / 2, y + 30); c.font = `500 22px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText(v, x + cw / 2, y + 62);
-  });
-  // corrida das curtidas
-  const C = CFG.curtidas;
-  const meta = (p) => (p.terreno == null ? C.terreno : S.plots[p.terreno].andares === 1 ? C.sobrado : S.plots[p.terreno].andares === 2 ? C.predio : null);
-  const top = Object.values(S.pessoas).filter((p) => p.curtidas > 0 && meta(p)).sort((a, b) => b.curtidas / meta(b) - a.curtidas / meta(a)).slice(0, 3);
+  c.textAlign = 'right'; c.font = `600 27px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText(`${moradores} moradores`, W - 62, 66); if (leilaoAtivo()) { c.fillStyle = '#ff7a6a'; c.fillText(S.leilao ? '⚔️ desafio rolando!' : `${casas}/${PLOTS.length} · LEILÃO ABERTO`, W - 62, 102); } else { c.fillStyle = '#b9b0d8'; c.fillText(`${casas}/${PLOTS.length} casas`, W - 62, 102); }
+  // regras (painel que troca de página)
+  const yR = 150, hR = drawRegras(c, t, yR);
+  const y0 = yR + hR + 14;
+  if (S.leilao) return drawDesafio(c, t, y0);
+  // corrida das curtidas (ou do leilão, quando a cidade lotou)
+  const lot = leilaoAtivo(), alvo = lot ? alvoLeilao() : -1, lim = (LC().minutosAtivo || 20) * 60000;
+  const cands = Object.values(S.pessoas).filter((p) => (lot ? p.terreno == null && now() - (p.visto || 0) < lim : p.curtidas > 0)).map((p) => [p, progresso(p, alvo)]).filter(([, g]) => g && g.atual > 0);
+  const top = cands.sort((a, b) => b[1].atual / b[1].meta - a[1].atual / a[1].meta).slice(0, 3);
   if (top.length) {
-    const y0 = 254, hh = 52 + top.length * 44; c.fillStyle = 'rgba(42,35,64,0.93)'; c.beginPath(); c.roundRect(30, y0, W - 60, hh, 22); c.fill();
-    c.textAlign = 'left'; c.font = `700 24px ${FONT}`; c.fillStyle = '#ff7aa8'; c.fillText('CORRIDA DAS CURTIDAS', 56, y0 + 28);
-    top.forEach((p, i) => {
-      const m = meta(p), k = Math.min(1, p.curtidas / m), y = y0 + 62 + i * 44, pr = p.terreno == null ? 'terreno' : S.plots[p.terreno].andares === 1 ? 'sobrado' : 'prédio';
+    const hh = 52 + top.length * 44; c.fillStyle = 'rgba(42,35,64,0.93)'; c.beginPath(); c.roundRect(30, y0, W - 60, hh, 22); c.fill();
+    c.textAlign = 'left'; c.font = `700 24px ${FONT}`; c.fillStyle = lot ? '#ff7a6a' : '#ff7aa8'; c.fillText(lot ? 'CORRIDA DO LEILÃO' : 'CORRIDA DAS CURTIDAS', 56, y0 + 28);
+    if (lot && alvo >= 0) { const d = S.pessoas[S.plots[alvo].dono]; c.textAlign = 'right'; c.font = `500 20px ${FONT}`; c.fillStyle = '#b9b0d8'; c.fillText(`mais fraco: ${d ? nomeDe(d) : '?'} · ${fmt(pontos(d))} pts`, W - 56, y0 + 28); }
+    top.forEach(([p, g], i) => {
+      const m = g.meta, k = Math.min(1, g.atual / m), y = y0 + 62 + i * 44, pr = g.rot;
       c.textAlign = 'left'; c.font = `600 23px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText(`${i + 1}. ${nomeDe(p)}`, 56, y);
       c.fillStyle = '#1b1530'; c.beginPath(); c.roundRect(360, y - 13, 420, 26, 13); c.fill(); const gr = c.createLinearGradient(360, 0, 780, 0); gr.addColorStop(0, '#ff5c8a'); gr.addColorStop(1, '#ffcc33'); c.fillStyle = gr; c.beginPath(); c.roundRect(362, y - 11, Math.max(22, 416 * k), 22, 11); c.fill();
-      c.textAlign = 'right'; c.font = `500 20px ${FONT}`; c.fillStyle = '#b9b0d8'; c.fillText(`${p.curtidas}/${m} ${pr}`, W - 56, y);
+      c.textAlign = 'right'; c.font = `500 20px ${FONT}`; c.fillStyle = '#b9b0d8'; c.fillText(`${fmt(g.atual)}/${fmt(m)} ${g.un === 'pts' ? 'pts' : pr}`, W - 56, y);
     });
   }
+}
+// painel do desafio: desafiante × dono, pontos ao vivo e contagem regressiva
+function drawDesafio(c, t, y0) {
+  const D = S.leilao, des = S.pessoas[D.desafiante], dono = S.pessoas[D.dono]; if (!des) return;
+  const seg = Math.max(0, Math.ceil((D.fim - now()) / 1000)), tot = (LC().segundosDeDefesa || 60);
+  const pa = pontos(des), pb = pontos(dono), mx = Math.max(pa, pb, 1), x = 30, w = W - 60, h = 236;
+  const pulso = seg <= 10 ? 0.5 + 0.5 * Math.sin(t / 120) : 0;
+  c.fillStyle = 'rgba(20,10,40,0.22)'; c.beginPath(); c.roundRect(x, y0 + 6, w, h, 24); c.fill();
+  c.fillStyle = 'rgba(42,35,64,0.95)'; c.beginPath(); c.roundRect(x, y0, w, h, 24); c.fill();
+  c.strokeStyle = '#ff5c5c'; c.lineWidth = 4 + pulso * 3; c.stroke();
+  c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 28px ${FONT}`; c.fillStyle = '#ff7a6a';
+  c.fillText(`⚔️ DESAFIO PELO TERRENO Nº ${D.terreno + 1}`, x + 26, y0 + 34);
+  c.textAlign = 'right'; c.font = `700 40px ${FONT}`; c.fillStyle = seg <= 10 ? '#ff5c5c' : '#ffffff';
+  c.fillText(`0:${String(seg).padStart(2, '0')}`, x + w - 26, y0 + 36);
+  const linha = (p, pt, y, cor, rot) => {
+    c.textAlign = 'left'; c.font = `500 18px ${FONT}`; c.fillStyle = '#b9b0d8'; c.fillText(rot, x + 26, y - 18);
+    c.font = `700 25px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText(p ? nomeDe(p) : '?', x + 26, y + 10, 270);
+    const bx = x + 310, bw = w - 310 - 170;
+    c.fillStyle = '#1b1530'; c.beginPath(); c.roundRect(bx, y - 4, bw, 28, 14); c.fill();
+    c.fillStyle = cor; c.beginPath(); c.roundRect(bx + 2, y - 2, Math.max(24, (bw - 4) * pt / mx), 24, 12); c.fill();
+    c.textAlign = 'right'; c.font = `700 24px ${FONT}`; c.fillStyle = cor; c.fillText(`${fmt(pt)} pts`, x + w - 26, y + 10);
+  };
+  linha(des, pa, y0 + 92, '#ff5c5c', 'DESAFIANTE');
+  linha(dono, pb, y0 + 156, '#5fd068', 'DONO');
+  c.fillStyle = '#ff5c5c'; c.globalAlpha = 0.6; c.beginPath(); c.roundRect(x + 26, y0 + h - 12, (w - 52) * (seg / tot), 5, 3); c.fill(); c.globalAlpha = 1;
+  c.textAlign = 'center'; c.font = `500 20px ${FONT}`; c.fillStyle = '#ffd84a';
+  c.fillText(pa > pb ? `${dono ? nomeDe(dono) : '?'}: mande curtidas e presentes para defender!` : `${nomeDe(des)} precisa de mais ${fmt(pb - pa + 1)} pts!`, x + w / 2, y0 + h - 34, w - 52);
 }
 function drawToast(c, t, dt) {
   if (!toastAtual && toasts.length) { toastAtual = Object.assign(toasts.shift(), { t: 0 }); }
@@ -455,7 +690,7 @@ function drawToast(c, t, dt) {
   const T = toastAtual; T.t += dt; const dur = toasts.length > 3 ? 1.6 : 3.0;
   if (T.t > dur) { toastAtual = null; return; }
   const a = Math.min(1, T.t * 5, (dur - T.t) * 4); const s = 0.85 + 0.15 * Math.min(1, T.t * 6);
-  c.save(); c.globalAlpha = Math.max(0, a); c.translate(W / 2, 560); c.scale(s, s);
+  c.save(); c.globalAlpha = Math.max(0, a); c.translate(W / 2, 700); c.scale(s, s);
   c.font = `700 40px ${FONT}`; const w1 = c.measureText(T.nome).width; c.font = `500 34px ${FONT}`; const w2 = c.measureText(T.texto).width; const w = Math.min(W - 40, Math.max(w1, w2) + 80);
   c.fillStyle = 'rgba(20,10,40,0.3)'; c.beginPath(); c.roundRect(-w / 2, -60, w, 128, 34); c.fill();
   c.fillStyle = '#2a2340'; c.beginPath(); c.roundRect(-w / 2, -66, w, 128, 34); c.fill(); c.strokeStyle = T.cor; c.lineWidth = 6; c.stroke();
@@ -468,9 +703,9 @@ let last = performance.now(), slowT = 0, pronto = false;
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   if (pronto) {
-    slowT += dt; if (slowT > 1) { slowT = 0; tickObras(); limparInativos(); }
+    slowT += dt; if (slowT > 1) { slowT = 0; tickObras(); tickLeilao(); limparInativos(); }
     updateBus(dt); updateEnts(dt, t); updateCam(dt, t); updateParts(dt);
-    drawSky(ctx, dt); drawWorld(ctx, t); drawLabels(ctx, t); drawParts(ctx); drawHUD(ctx, t); drawToast(ctx, t, dt);
+    drawSky(ctx, dt); drawWorld(ctx, t); drawLuzes(ctx, t); drawLabels(ctx, t); drawParts(ctx); drawHUD(ctx, t); drawToast(ctx, t, dt);
   }
   requestAnimationFrame(frame);
 }
@@ -512,6 +747,22 @@ window.JOGO = {
   exportar() { return JSON.stringify(S); },
   importar(txt) { const j = JSON.parse(txt); if (!j || j.v !== 1) throw new Error('arquivo inválido'); j.salvoEm = now(); carregar(j); salvar(); },
   estado: () => S,
+  // leilão (painel de teste)
+  pontos: (id) => pontos(S.pessoas[String(id).toLowerCase()]),
+  infoLeilao() { const lot = leilaoAtivo(), i = lot ? alvoLeilao() : -1; return { lotada: cidadeLotada(), alvo: i, meta: i >= 0 ? metaLeilao(i) : 0, desafio: S.leilao || null }; },
+  // ocupa todos os terrenos à venda com moradores de teste (casas prontas)
+  encherCidade(nomes) {
+    let k = 0;
+    S.plots.forEach((st, i) => {
+      if (st.estado !== 'venda') return;
+      const n = (nomes[k++ % nomes.length] || 'morador') + '_' + (i + 1);
+      const p = pessoa({ id: n, usuario: n, apelido: n });
+      Object.assign(p, { morador: true, desde: now() - 600000, curtidas: 1000 + Math.floor(Math.random() * 1800), terreno: i });
+      Object.assign(st, { estado: 'casa', dono: p.id, andares: 1, tema: null, obraFim: 0 });
+      rebuildPlot(i); spawnEnt(p, 'portao');
+    });
+    salvar(); toast(CFG.titulo, 'cidade lotada: o leilão abriu!', '#ff5c5c');
+  },
 };
 
 // ---------------- início ----------------

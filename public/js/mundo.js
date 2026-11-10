@@ -104,10 +104,14 @@ function plotLabelPos(i, st) {
   const [gx, gy] = PLOTS[i];
   if (st.estado === 'venda') return iso(gx + 1.5, gy + 2.1, 58);
   if (st.estado === 'obra') return iso(gx + 1.5, gy + 1.5, 132);
+  const T = st.tema && TEMAS[st.tema];
+  if (T && T.tipo === 'torre') return iso(gx + 1.5, gy + 1.3, alturaTorre(st.tema));
   if ((st.andares || 1) >= 3) return iso(gx + 1.5, gy + 1.45, 5 + 92 + 34);
   const v = houseVariant(i, st); return iso(gx + 0.55 + v.w / 2, gy + 0.45 + v.d / 2, 5 + v.floors * 30 + 28 + 8);
 }
 function houseVariant(i, st) {
+  const T = st.tema && TEMAS[st.tema];
+  if (T && T.tipo === 'casa') return { w: st.tema === 'mansao' ? 2.2 : 1.9 + (i % 2) * 0.2, d: 1.6, floors: Math.min(2, st.andares || 1), wall: T.wall, roof: T.roof, door: T.door, dir: i % 2 ? 'x' : 'y' };
   return { w: 1.9 + (i % 2) * 0.2, d: 1.6, floors: Math.min(2, st.andares || 1), wall: WALLS[i % WALLS.length], roof: ROOFS[(i * 3) % ROOFS.length], door: ['#a8683c', '#3f7fd6', '#3f9e5a', '#c0392b'][i % 4], dir: i % 2 ? 'x' : 'y' };
 }
 function buildPlotSprites(i, st) {
@@ -120,14 +124,25 @@ function buildPlotSprites(i, st) {
     if (kind === 'casa') fillP(c, faceT(gx + 1.3, gy + 2.2, 0.4, 0.8, 5.7), '#e8dcc4');
     fenceAround(c, gx + 0.1, gy + 0.1, w - 0.2, d - 0.2, fenceCol).back();
   });
-  if (kind === 'casa' && (st.andares || 1) >= 3) {
-    add(gx + gy + 4.4, (c) => { c.save(); c.filter = 'blur(7px)'; shadowShape(c, gx + 0.5, gy + 0.6, 2, 1.7, 110); c.restore(); apartmentOn(c, gx + 0.5, gy + 0.6, 2, 1.7, ROOFS[i % ROOFS.length]); }, 30);
+  const T = st.tema && TEMAS[st.tema];
+  if (kind === 'casa' && T && T.tipo === 'torre') {
+    const fn = st.tema === 'castelo' ? castelo : st.tema === 'galaxia' ? torreGalaxia : torreEspacial;
+    add(gx + gy + 4.4, (c) => { c.save(); c.filter = 'blur(7px)'; shadowShape(c, gx + 0.7, gy + 0.55, 1.6, 1.5, st.tema === 'castelo' ? 70 : 110); c.restore(); fn(c, gx, gy); }, 30);
+    if (st.tema === 'espacial') add(gx + gy + 4.7, (c) => foguete(c, gx + 0.5, gy + 2.55));
+    else add(gx + gy + 4.6, (c) => { bush(c, gx + 0.5, gy + 2.6, 5, 1, st.tema === 'galaxia' ? '#c06bff' : '#ff7aa8'); bush(c, gx + 2.6, gy + 2.5, 5, 0.9, '#ffd84a'); });
+  } else if (kind === 'casa' && (st.andares || 1) >= 3) {
+    add(gx + gy + 4.4, (c) => { c.save(); c.filter = 'blur(7px)'; shadowShape(c, gx + 0.5, gy + 0.6, 2, 1.7, 110); c.restore(); apartmentOn(c, gx + 0.5, gy + 0.6, 2, 1.7, T ? T.acc : ROOFS[i % ROOFS.length]); }, 30);
     add(gx + gy + 4.6, (c) => { bush(c, gx + 0.5, gy + 2.6, 5, 1, '#ff7aa8'); bush(c, gx + 2.6, gy + 2.5, 5, 0.9, '#ffd84a'); });
   } else if (kind === 'casa') {
     const v = houseVariant(i, st); const hx = gx + 0.55, hy = gy + 0.45;
-    add(hx + hy + v.w + v.d, (c) => { c.save(); c.filter = 'blur(7px)'; shadowShape(c, hx, hy, v.w, v.d, v.floors * 30 + 28); c.restore(); houseOn(c, hx, hy, v); }, 30);
-    add(gx + gy + 4.6, (c) => { bush(c, gx + 0.5, gy + 2.6, 5, 1, '#ff7aa8'); bush(c, gx + 2.6, gy + 2.5, 5, 0.9, '#ffd84a'); });
-    add(gx + gy + 0.8, (c) => tree(c, gx + 0.45, gy + 0.35, 5, 0.75, ['#4fae4a', '#5fbf4f', '#3f9e5a'][i % 3]));
+    add(hx + hy + v.w + v.d, (c) => { c.save(); c.filter = 'blur(7px)'; shadowShape(c, hx, hy, v.w, v.d, v.floors * 30 + 28); c.restore(); houseOn(c, hx, hy, v); if (T) enfeiteCasa(c, st.tema, hx, hy, v); }, 30);
+    if (T) {
+      add(gx + gy + 4.6, (c) => quintalFrente(c, st.tema, gx, gy));
+      if (st.tema === 'praia') add(gx + gy + 3.1, (c) => quintalTras(c, st.tema, gx, gy)); else add(gx + gy + 0.8, (c) => quintalTras(c, st.tema, gx, gy));
+    } else {
+      add(gx + gy + 4.6, (c) => { bush(c, gx + 0.5, gy + 2.6, 5, 1, '#ff7aa8'); bush(c, gx + 2.6, gy + 2.5, 5, 0.9, '#ffd84a'); });
+      add(gx + gy + 0.8, (c) => tree(c, gx + 0.45, gy + 0.35, 5, 0.75, ['#4fae4a', '#5fbf4f', '#3f9e5a'][i % 3]));
+    }
   } else if (kind === 'obra') {
     add(gx + gy + 4.2, (c) => construction(c, gx + 0.6, gy + 0.8));
   } else {
