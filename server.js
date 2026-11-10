@@ -25,7 +25,7 @@ const args = process.argv.slice(2);
 const SIMULACAO = args.includes('--simulacao');
 const argUser = args.find((a) => !a.startsWith('--'));
 const USUARIO = String(argUser || process.env.TIKTOK_USUARIO || cfg.usuarioTikTok || '').replace(/^@/, '').trim();
-const PORTA = Number(process.env.PORTA || cfg.porta || 3000);
+const PORTA = Number(process.env.PORT || process.env.PORTA || cfg.porta || 3000); // PORT: Railway e outras hospedagens
 const CHAVE = process.env.EULER_API_KEY || cfg.chaveEulerStream || '';
 
 // ---------------- site ----------------
