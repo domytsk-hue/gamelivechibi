@@ -134,4 +134,8 @@ window.CONFIG = {
   minutosAteIrEmbora: 20,     // boneco sem casa some depois desse tempo sem interagir
   zoomCamera: 1.6,
   passeioDaCamera: true,      // câmera passeia devagar pela cidade quando não há eventos
+  // De tempos em tempos a câmera tira todo o zoom e mostra a cidade inteira, depois volta ao passeio
+  visaoGeral: true,
+  segundosEntreVisaoGeral: 40,   // tempo de passeio normal entre uma visão geral e outra
+  segundosDeVisaoGeral: 7,       // quanto tempo fica mostrando a cidade inteira
 };

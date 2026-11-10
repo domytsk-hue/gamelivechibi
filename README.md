@@ -91,6 +91,7 @@ Tudo fica em **`public/config.js`** (é só editar e recarregar a página):
 - `painelDeRegras`: as páginas do painel no topo da tela (ícone, o que fazer, o que ganha) e `segundosPorPagina`
 - `leilao`: pontos por curtida/moeda/inscrição, margem para desafiar, segundos de defesa e minutos de proteção
 - `chegarAoComentar`: se quem só comenta também ganha boneco
+- `zoomCamera`, `passeioDaCamera`: zoom e passeio normal da câmera; `visaoGeral`, `segundosEntreVisaoGeral`, `segundosDeVisaoGeral`: de tempos em tempos a câmera abre todo o zoom e mostra a cidade inteira
 - `nomeExibido`: mostrar o @ (`usuario`) ou o nome de exibição (`apelido`)
 
 ## Arquivos
