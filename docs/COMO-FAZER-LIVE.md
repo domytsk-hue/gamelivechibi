@@ -131,6 +131,52 @@ A chave costuma mudar a cada live: pegue de novo sempre que for transmitir.
 
 Não. O jogo precisa de um computador rodando o `npm start` e transmitindo a tela. O celular pode ficar do lado para você acompanhar o chat e responder as pessoas. A live do TikTok sai do PC.
 
+
+## Jogo hospedado no Railway (sem PC ligado rodando o jogo)
+
+Se o jogo está no Railway, o servidor roda na nuvem e você **não precisa** rodar `npm start` no PC. A live continua saindo do LIVE Studio no PC.
+
+### Configurar o Railway (uma vez)
+
+No serviço **gamelivechibi** → aba **Variables**, adicione:
+
+| Variável | Valor |
+|---|---|
+| `TIKTOK_USUARIO` | seu @ do TikTok, sem o @ |
+| `EULER_API_KEY` | sua chave grátis do eulerstream.com (recomendado) |
+
+O Railway reinicia o serviço sozinho. Nos **Deploy Logs** deve aparecer `você não está ao vivo — tento de novo em 30s` (normal fora da live) e depois `conectado na live (sala ...)` quando você entrar ao vivo.
+
+**Para a cidade não sumir a cada deploy:** em **Settings → Volumes**, crie um volume com o caminho de montagem `/app/data`. Sem ele, `data/cidade.json` é apagado sempre que o Railway reinstala o jogo.
+
+**Domínio:** em **Settings → Networking → Generate Domain**. Se o Railway pedir a porta, use a mesma da variável `PORT` (o jogo usa `PORT` automaticamente).
+
+### Ligar no TikTok LIVE Studio (não precisa de OBS)
+
+1. Abra o LIVE Studio no modo **vertical**.
+2. **+ Adicionar fonte → Link**.
+3. Cole o endereço do Railway, por exemplo `https://gamelivechibi-production.up.railway.app` (sem `?painel=1`).
+4. Se tiver "resolução personalizada", use **1080 x 1920**. Estique a fonte para ocupar a tela.
+5. Adicione a câmera por cima, num canto de baixo, se quiser aparecer.
+6. **Fazer LIVE**.
+
+O LIVE Studio só **mostra** o jogo. Quem avisa o jogo dos seguidores, curtidas e presentes é o servidor no Railway, que lê a live pelo seu @. Não existe ligação entre o LIVE Studio e o jogo, e não precisa.
+
+### Se a fonte Link der problema: OBS como câmera
+
+Há relatos de a fonte Link do LIVE Studio aparecer minúscula (0x0) ou travar. Nesse caso:
+
+1. No **OBS**: Configurações → Vídeo → 1080x1920. Fonte **Navegador** com o endereço do Railway, 1080 x 1920.
+2. Clique em **Iniciar câmera virtual**.
+3. No **LIVE Studio**: adicione uma fonte **Câmera** e escolha **OBS Virtual Camera**. Estique para a tela toda.
+
+Assim você continua transmitindo pelo LIVE Studio e não precisa de chave de transmissão.
+
+### Cuidados com o link público
+
+- Qualquer pessoa com o link `...railway.app/?painel=1` abre o painel de teste e pode mexer na sua cidade (inclusive zerar). Não mostre esse link na live.
+- O TikTok às vezes bloqueia conexões vindas de servidores na nuvem. Se os Deploy Logs mostrarem erro de conexão estando ao vivo, rode o jogo no PC (`npm start`) e use `http://localhost:3000` no LIVE Studio.
+
 ---
 
 ## 5. No dia da live (checklist)
