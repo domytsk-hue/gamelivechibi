@@ -60,7 +60,14 @@ wss.on('connection', (ws) => {
 });
 
 // ---------------- TikTok ----------------
-const user = (u = {}) => ({ id: String(u.uniqueId || u.userId || '').toLowerCase(), usuario: u.uniqueId || '', apelido: u.nickname || '' });
+const user = (u) => { u = u || {}; return { id: String(u.uniqueId || u.userId || '').toLowerCase(), usuario: u.uniqueId || '', apelido: u.nickname || '' }; };
+// procura o primeiro objeto com cara de usuário (uniqueId/userId) dentro da mensagem
+function achaUser(o, n = 0) {
+  if (!o || typeof o !== 'object' || n > 6) return null;
+  if (o.uniqueId || (o.userId && o.nickname)) return o;
+  for (const v of Object.values(o)) { const r = achaUser(v, n + 1); if (r) return r; }
+  return null;
+}
 function evento(e) { if (!e.user || !e.user.id) return; enviarTodos({ tipo: 'evento', evento: e }); }
 
 async function conectarTikTok() {
@@ -76,6 +83,16 @@ async function conectarTikTok() {
     conn.on(WebcastEvent.LIKE, (d) => evento({ tipo: 'curtir', user: user(d.user), qtd: d.likeCount || 1 }));
     conn.on(WebcastEvent.CHAT, (d) => evento({ tipo: 'chat', user: user(d.user), texto: d.comment || '' }));
     conn.on(WebcastEvent.SHARE, (d) => evento({ tipo: 'compartilhar', user: user(d.user) }));
+    conn.on(WebcastEvent.MEMBER, (d) => evento({ tipo: 'entrar', user: user(d.user) }));
+    conn.on(WebcastEvent.SUB_NOTIFY, (d) => evento({ tipo: 'inscrever', user: user(d.user) }));
+    // fã-clube / Super Fã: o TikTok manda em formatos diferentes; pega o usuário onde estiver
+    const fa = (d) => evento({ tipo: 'faclube', user: user(d.user || achaUser(d)) });
+    conn.on(WebcastEvent.SUPER_FAN_JOIN, fa);
+    conn.on(WebcastEvent.SOCIAL, (d) => { const k = JSON.stringify((d.common && d.common.displayText) || d.displayType || ''); if (/fans?_?club|fan_?team|superfan/i.test(k)) fa(d); });
+    // baú de moedas
+    const bau = (d) => { const i = d.envelopeInfo || {}; evento({ tipo: 'bau', user: i.sendUserId ? user({ userId: i.sendUserId, nickname: i.sendUserName }) : user(d.user || achaUser(d)) }); };
+    conn.on(WebcastEvent.ENVELOPE, bau);
+    conn.on(WebcastEvent.SUPER_FAN_BOX, bau);
     conn.on(WebcastEvent.GIFT, (d) => {
       const det = d.giftDetails || {}; const ext = d.extendedGiftInfo || {};
       if (det.giftType === 1 && !d.repeatEnd) return; // combo ainda rolando: espera terminar

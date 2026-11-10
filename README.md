@@ -9,11 +9,35 @@ Jogo de navegador para lives no TikTok. Quem segue a live vira um bonequinho chi
 | Na live | No jogo |
 |---|---|
 | **Seguir** | o boneco chega de ônibus com o nome em cima e vai para a praça |
-| **1000 curtidas** (somando entre lives) | ganha um terreno: vira obra e depois casa com o nome. Com 3000 vira sobrado e com 6000 vira prédio |
-| **Rosa** | roupa surpresa (comum, raro, épico ou lendário). A cor da etiqueta do nome mostra a raridade |
-| **Outros presentes** | configuráveis por nome ou por valor em moedas (acessório, roupa rara, terreno, festa…) |
+| **Curtidas** (somando entre lives) | 1.000 = terreno (obra que vira casa), 3.000 = sobrado, 6.000 = prédio. Uma barrinha em cima do boneco mostra quanto falta |
 | **Comentário** | aparece num balão em cima do boneco |
-| **Compartilhar** | ganha um acessório |
+| **Compartilhar** | acessório (no máximo 1 a cada 5 min por pessoa) |
+| **Entrar na live** | quem já tem casa sai pelo portão e a luz da casa acende |
+| **Inscrever-se** | terreno na hora (ou a casa sobe de nível) + roupa épica ou melhor |
+| **Fã-clube / Super Fã** | roupa rara ou melhor |
+| **Baú de moedas** | festa na cidade + acessório para quem abriu |
+| **Rosa** | roupa surpresa (comum, raro, épico ou lendário). A cor da etiqueta do nome mostra a raridade |
+| **Presentes de 1 a 9 / 10 a 99 / 100 a 999 moedas** | acessório / roupa rara / terreno + roupa épica |
+| **1.000 a 9.999 moedas** | terreno + roupa lendária + festa |
+| **10.000+ moedas** | casa vira prédio na hora + roupa lendária + festa |
+| **Especiais** | Confetti e Money Gun: + festa · Óculos de sol: óculos escuros · Bolo: roupa Festa + festa · Planeta e Foguete: prédio + Astronauta · Leão: prédio + Realeza · Universo: prédio + lendária + todos na tela ganham acessório |
+
+Cada prêmio deixa a casa com um visual próprio: **Casa Estrela** (inscrição), **Casa de Doce** (Bolo), **Casa de Praia** (Óculos de sol), **Casa da Festa** (Confetti, Money Gun), **Mansão** (1.000 a 9.999 moedas), **Base Espacial** (Planeta, Foguete), **Castelo** (Leão) e **Torre Galáxia** (Universo, 10.000+). Quem ganha casa só com curtidas fica com a casa padrão. Os desenhos ficam em `public/js/casas-tema.js` e o tema de cada prêmio em `config.js` (`tema: '...'`).
+
+### Leilão: quando os 30 terrenos acabam
+
+Cada pessoa tem **pontos**: 1 curtida = 1 ponto, 1 moeda de presente = 10 pontos (100 moedas valem o mesmo que 1.000 curtidas) e inscrição = 1.000 pontos. Os pontos somam entre lives.
+
+Quando a cidade lota:
+
+1. O terreno do **dono mais fraco** (com menos pontos) ganha a etiqueta 🎯 MAIS FRACO.
+2. Quem não tem casa e passa esse dono por **10% ou mais** (mínimo 1.000 pontos) e interagiu na live nos últimos 20 minutos abre um **desafio**.
+3. Aparece na tela o painel ⚔️ DESAFIO com os pontos dos dois ao vivo e **60 segundos** para o dono se defender mandando curtidas e presentes.
+4. No fim, se o desafiante ainda tiver mais pontos, **toma o terreno** (a casa é reconstruída para ele) e o antigo dono volta para a praça sem perder os pontos. Se o dono se defender, o terreno fica 🛡️ protegido por 3 minutos. O terreno recém-tomado também fica protegido por 3 minutos.
+
+Um desafio por vez, com uma pausa de 8 segundos entre eles. Uma página extra do painel de regras explica o leilão e só aparece quando a cidade lotou. Tudo isso se ajusta em `leilao` no `config.js`. No painel de teste há botões para lotar a cidade, desafiar o mais fraco, defender e encerrar o desafio.
+
+No topo da tela um painel troca de página a cada 8 segundos mostrando essas regras para quem está assistindo.
 
 Onde cada boneco fica: chega de ônibus → praça em frente à rodoviária → quando a praça lota, passeia pelas ruas → quem tem casa fica no portão.
 
@@ -64,8 +88,10 @@ Tudo fica em **`public/config.js`** (é só editar e recarregar a página):
 - `curtidas`: quantas curtidas para terreno, sobrado e prédio
 - `chances`: chance de cada raridade de roupa
 - `presentes.porNome`: ação para um presente específico (ex.: `'rose'`)
-- `presentes.porMoedas`: ação por faixa de valor (1–9, 10–99, 100–999, 1000+)
-- `regrasNaTela`: as 3 regras que aparecem no topo
+- `presentes.porMoedas`: ação por faixa de valor (1–9, 10–99, 100–999, 1.000–9.999, 10.000+)
+- `compartilhar`, `inscrever`, `faclube`, `bau`: o que cada interação dá; `minutosEntreCompartilhar`, `entrarAcendeLuz`
+- `painelDeRegras`: as páginas do painel no topo da tela (ícone, o que fazer, o que ganha) e `segundosPorPagina`
+- `leilao`: pontos por curtida/moeda/inscrição, margem para desafiar, segundos de defesa e minutos de proteção
 - `chegarAoComentar`: se quem só comenta também ganha boneco
 - `nomeExibido`: mostrar o @ (`usuario`) ou o nome de exibição (`apelido`)
 
@@ -78,6 +104,7 @@ public/config.js     regras do jogo (presentes, curtidas, chances)
 public/js/mapa.js    desenho da cidade (mapa oficial v4, isométrico)
 public/js/bonecos.js bonecos chibi "Vinil brilhante" e guarda-roupa
 public/js/mundo.js   monta a cidade em camadas para os bonecos passarem atrás/na frente
+public/js/casas-tema.js  casas temáticas de cada prêmio
 public/js/jogo.js    regras, ônibus, câmera, etiquetas, avisos e efeitos
 public/js/painel.js  painel de simulação
 ```
