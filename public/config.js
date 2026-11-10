@@ -35,7 +35,32 @@ window.CONFIG = {
       ['🚀', 'Planeta / Foguete', 'Base Espacial + Astronauta'],
       ['🦁', 'Leão', 'Castelo + Realeza'],
     ] },
+    // só aparece quando os terrenos acabam (soQuandoLotar)
+    { titulo: 'CIDADE LOTOU: LEILÃO!', cor: '#ff5c5c', soQuandoLotar: true, itens: [
+      ['🏆', 'Faça pontos', '❤️ 1 pt · 🪙 1 moeda = 10 pts'],
+      ['🎯', '10% a mais que o mais fraco', 'abre um desafio'],
+      ['🛡️', 'Dono tem 60s', 'para se defender'],
+      ['🔑', 'Ganhou o desafio?', 'o terreno é seu!'],
+    ] },
   ],
+
+  // ---------------- LEILÃO (quando os 30 terrenos estão ocupados) ----------------
+  // Cada pessoa tem PONTOS = curtidas + moedas de presentes + bônus de inscrição (somam entre lives).
+  // Quando não sobra terreno, quem não tem casa e passa o dono MAIS FRACO (menos pontos)
+  // por pelo menos `margemPorcento` abre um desafio. O dono tem `segundosDeDefesa` para
+  // mandar curtidas/presentes. No fim, se o desafiante ainda tiver mais pontos, toma o terreno
+  // (a casa é reconstruída para ele) e o antigo dono volta para a praça, sem perder os pontos.
+  // Se o dono se defender, o terreno fica protegido por `minutosDeProtecao`.
+  leilao: {
+    ativo: true,
+    pontosPorCurtida: 1,
+    pontosPorMoeda: 10,        // 100 moedas = 1.000 pontos = o mesmo que 1.000 curtidas
+    pontosPorInscricao: 1000,  // inscrição já dá terreno; vale como 1.000 curtidas
+    margemPorcento: 10,
+    segundosDeDefesa: 60,
+    minutosDeProtecao: 3,
+    minutosAtivo: 20,          // o desafiante precisa ter interagido na live nesse tempo
+  },
 
   // Curtidas acumuladas por pessoa (somam entre lives)
   curtidas: {
