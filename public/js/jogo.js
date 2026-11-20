@@ -644,7 +644,32 @@ function drawLuzes(c, t) {
   });
   c.restore();
 }
+// Rádio TikCity: selo no canto de baixo com o nome da música que está tocando
+function drawRadio(c, t) {
+  const R = window.MUSICA && MUSICA.info(); if (!R || !R.mostrar) return;
+  const dt = (performance.now() - R.desde) / 1000;
+  const entra = Math.min(1, dt / 0.5), ease = 1 - Math.pow(1 - entra, 3);
+  const novo = dt < 4; // nos primeiros segundos de cada música o selo pisca de leve
+  c.save(); c.textBaseline = 'middle';
+  c.font = `600 30px ${FONT}`; const wn = c.measureText(R.nome).width;
+  c.font = `700 21px ${FONT}`; const wr = c.measureText(R.radio.toUpperCase()).width;
+  const h = 96, w = Math.min(W - 60, Math.max(wn + 50, wr + 60) + 130), x = 30 - (1 - ease) * (w + 40), y = H - h - 40;
+  c.fillStyle = 'rgba(20,10,40,0.25)'; c.beginPath(); c.roundRect(x, y + 6, w, h, h / 2); c.fill();
+  c.fillStyle = 'rgba(42,35,64,0.93)'; c.beginPath(); c.roundRect(x, y, w, h, h / 2); c.fill();
+  c.strokeStyle = '#ff7aa8'; c.lineWidth = novo ? 4 + 2 * Math.abs(Math.sin(t / 180)) : 4; c.stroke();
+  // ícone: rádio com ondinhas
+  const cx = x + 50, cy = y + h / 2;
+  c.fillStyle = '#ff7aa8'; c.beginPath(); c.arc(cx, cy, 34, 0, 7); c.fill();
+  c.font = `38px ${EMOJI}`; c.textAlign = 'center'; c.fillStyle = '#ffffff'; c.fillText('📻', cx, cy + 2);
+  // nome da rádio + equalizador
+  c.textAlign = 'left'; c.font = `700 21px ${FONT}`; c.fillStyle = '#ffd84a'; c.fillText(R.radio.toUpperCase(), x + 100, y + 30);
+  const ex = x + 100 + wr + 14;
+  for (let i = 0; i < 4; i++) { const a = 5 + 11 * Math.abs(Math.sin(t / (170 + i * 45) + i * 1.7)); c.fillStyle = '#5fd068'; c.beginPath(); c.roundRect(ex + i * 8, y + 38 - a, 5, a, 2); c.fill(); }
+  c.font = `600 30px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText('🎵 ' + R.nome, x + 100, y + 64, w - 120);
+  c.restore();
+}
 function drawHUD(c, t) {
+  drawRadio(c, t);
   // título + números
   panel(c, 30, 30, W - 60, 104);
   c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 46px ${FONT}`; c.fillStyle = '#ffd84a'; c.fillText(CFG.titulo, 62, 84);

@@ -1,5 +1,5 @@
-"""3 trilhas originais para tocar em loop na live do TikCity (sintetizadas, sem direitos de terceiros).
-Uso: python compor-musicas.py PASTA_SAIDA   -> gera musica-1.wav, musica-2.wav, musica-3.wav (loops perfeitos)"""
+"""5 trilhas originais para tocar em loop na live do TikCity (sintetizadas, sem direitos de terceiros).
+Uso: python compor-musicas.py PASTA_SAIDA [1 2 3 4 5]  -> gera as faixas em WAV (loops perfeitos)"""
 import sys, wave, numpy as np
 SR = 44100
 OUT = sys.argv[1]
@@ -160,4 +160,62 @@ def musica3():
                 if m: mx.add(bell(m, 1.4, 0.5), t0 + k * B / 2, 0.11, 0.3)
     finish(mx, "musica-3-fim-de-tarde")
 
-musica1(); musica2(); musica3()
+
+# =============== 4) PASSEIO DE ÔNIBUS: pop com levada de reggae, 100 bpm ===============
+def musica4():
+    B = 60 / 100; bars = 36; mx = Mix(bars * 4 * B)
+    prog = [[67, 71, 74], [64, 67, 71], [60, 64, 67], [62, 66, 69]]  # G Em C D
+    roots = [43, 40, 36, 38]
+    mel = melody_line([prog[i % 4] for i in range(bars)], 41, 1, 8, 0.35, 67, 86)
+    mel = [mel[b % 8] for b in range(bars)]
+    for b in range(bars):
+        t0 = b * 4 * B; c = prog[b % 4]; r = roots[b % 4]; sec = (b // 4) % 9
+        for k in range(4):  # acorde no contratempo (skank)
+            mx.add(sum(keys(m, B * 0.35, 0.12) for m in c) / 3, t0 + k * B + B / 2, 0.24, 0.2)
+        mx.add(bass(r, B * 1.4, 0.5), t0, 0.5); mx.add(bass(r + 7, B * 0.5, 0.3), t0 + 1.5 * B, 0.35)
+        mx.add(bass(r + 12, B * 0.9, 0.4), t0 + 2 * B, 0.35); mx.add(bass(r + 4, B * 0.5, 0.3), t0 + 3.5 * B, 0.3)
+        if sec != 0:
+            for k in range(4):
+                mx.add(kick(0.8), t0 + k * B, 0.42 if k % 2 == 0 else 0.3)
+                if k in (1, 3): mx.add(snare(0.07), t0 + k * B, 0.17, -0.1)
+            for k in range(8): mx.add(hat(0.01), t0 + k * B / 2, 0.2 if k % 2 else 0.1, 0.35)
+        if sec in (2, 3, 4, 6, 7):
+            for k, m in enumerate(mel[b]):
+                if m: mx.add(marimba(m, 0.5, 0.2), t0 + k * B / 2, 0.2, -0.25)
+        if sec in (5, 8):
+            for k, m in enumerate(mel[b]):
+                if m and k % 2 == 0: mx.add(bell(m, 1.3, 0.5), t0 + k * B / 2, 0.09, -0.2)
+    finish(mx, "musica-4-passeio-de-onibus")
+
+# =============== 5) LUZES DA CIDADE: synth-pop suave, 116 bpm ===============
+def saw(m, dur, d=0.3):
+    n = int(SR * dur); t = np.arange(n) / SR; f = hz(m)
+    s = sum(np.sin(2 * np.pi * f * k * t) / k for k in range(1, 7))
+    return s * env(n, 0.004, d, 0.0) * 0.6
+def musica5():
+    B = 60 / 116; bars = 40; mx = Mix(bars * 4 * B)
+    prog = [[57, 60, 64], [65, 69, 72], [60, 64, 67], [67, 71, 74]]  # Am F C G
+    roots = [45, 41, 48, 43]
+    mel = melody_line([prog[i % 4] for i in range(bars)], 77, 1, 8, 0.3, 69, 88)
+    mel = [mel[b % 8] for b in range(bars)]
+    for b in range(bars):
+        t0 = b * 4 * B; c = prog[b % 4]; r = roots[b % 4]; sec = (b // 8) % 5
+        mx.add(pad(c, 4 * B + 0.3), t0, 0.1)
+        for k in range(16):  # arpejo em semicolcheias
+            mx.add(saw(c[k % 3] + (12 if (k // 3) % 2 else 0), 0.2, 0.06), t0 + k * B / 4, 0.07, 0.3 if k % 2 else -0.3)
+        for k in range(8): mx.add(pluckbass(r - 12 if k % 2 == 0 else r, B * 0.45), t0 + k * B / 2, 0.38)
+        if sec in (1, 2, 4):
+            for k in range(4):
+                mx.add(kick(0.9), t0 + k * B, 0.45)
+                mx.add(hat(0.015), t0 + k * B + B / 2, 0.22, 0.3)
+                if k in (1, 3): mx.add(snare(0.08), t0 + k * B, 0.2)
+        if sec in (2, 4):
+            for k, m in enumerate(mel[b]):
+                if m: mx.add(bell(m, 1.0, 0.35), t0 + k * B / 2, 0.12, -0.2)
+        if sec == 3:
+            for k, m in enumerate(mel[b]):
+                if m and k % 2 == 0: mx.add(keys(m, B, 0.5), t0 + k * B / 2, 0.16)
+    finish(mx, "musica-5-luzes-da-cidade")
+
+quais = sys.argv[2:] or ["1", "2", "3", "4", "5"]
+for q in quais: globals()["musica" + q]()
