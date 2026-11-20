@@ -30,6 +30,8 @@
   });
   // música: ouvir as faixas e o volume
   painel.querySelectorAll('[data-musica]').forEach((b) => b.onclick = () => { const n = +b.dataset.musica; n ? MUSICA.tocar(n) : MUSICA.parar(); });
+  document.getElementById('pularMusica').onclick = () => MUSICA.pular();
+  document.getElementById('ligarMusica').onclick = () => MUSICA.ligar();
   const $vol = document.getElementById('volMusica'); $vol.value = MUSICA.volume(); $vol.oninput = () => MUSICA.setVolume($vol.value);
   document.getElementById('chuva').onclick = () => { for (let i = 0; i < 10; i++) setTimeout(() => JOGO.evento({ tipo: 'seguir', user: user(aleatorio()) }), i * 150); };
 
