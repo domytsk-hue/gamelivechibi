@@ -4,6 +4,11 @@
 window.CONFIG = {
   titulo: 'TikCity',
 
+  // Música de fundo (toca em loop enquanto a cidade está aberta). Tecla M liga/desliga.
+  //   faixa: 1 = Praça Ensolarada (bossa suave) · 2 = Cidade de Brinquedo (alegre) · 3 = Fim de Tarde (calminha)
+  //   volume: de 0 a 1 (0.35 deixa a música baixinha, sem atrapalhar a sua voz)
+  musica: { ativa: true, faixa: 1, volume: 0.35 },
+
   // Nome em cima do boneco: 'usuario' (@ do TikTok) ou 'apelido' (nome de exibição)
   nomeExibido: 'usuario',
 

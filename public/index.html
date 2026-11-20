@@ -71,6 +71,16 @@
     </div>
     <p id="infoLeilao" class="dica"></p>
 
+    <h2>Música de fundo</h2>
+    <div class="grade">
+      <button data-musica="1">🎵 1 Praça Ensolarada</button>
+      <button data-musica="2">🎵 2 Cidade de Brinquedo</button>
+      <button data-musica="3">🎵 3 Fim de Tarde</button>
+      <button data-musica="0">🔇 Sem música</button>
+    </div>
+    <label>Volume <input id="volMusica" type="range" min="0" max="1" step="0.05"></label>
+    <p class="dica">Aqui é só para ouvir. A música que toca na live é a <code>faixa</code> de <code>musica</code> no <code>config.js</code>.</p>
+
     <h2>Cidade</h2>
     <div class="grade">
       <button id="exportar">💾 Baixar cidade</button>
@@ -87,6 +97,7 @@
   <script src="js/bonecos.js"></script>
   <script src="js/mundo.js"></script>
   <script src="js/jogo.js"></script>
+  <script src="js/musica.js"></script>
   <script src="js/painel.js"></script>
 </body>
 </html>
