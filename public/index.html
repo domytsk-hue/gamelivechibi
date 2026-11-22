@@ -71,6 +71,20 @@
     </div>
     <p id="infoLeilao" class="dica"></p>
 
+    <h2>Rádio TikCity</h2>
+    <div class="grade">
+      <button data-musica="1">🎵 Praça Ensolarada</button>
+      <button data-musica="2">🎵 Cidade de Brinquedo</button>
+      <button data-musica="3">🎵 Fim de Tarde</button>
+      <button data-musica="4">🎵 Passeio de Ônibus</button>
+      <button data-musica="5">🎵 Luzes da Cidade</button>
+      <button id="pularMusica">⏭️ Próxima</button>
+      <button id="ligarMusica">▶️ Ligar rádio</button>
+      <button data-musica="0">🔇 Desligar</button>
+    </div>
+    <label>Volume <input id="volMusica" type="range" min="0" max="1" step="0.05"></label>
+    <p class="dica">A ordem, o nome da rádio e o volume da live ficam em <code>musica</code> no <code>config.js</code>. Tecla M liga/desliga.</p>
+
     <h2>Cidade</h2>
     <div class="grade">
       <button id="exportar">💾 Baixar cidade</button>
@@ -87,6 +101,7 @@
   <script src="js/bonecos.js"></script>
   <script src="js/mundo.js"></script>
   <script src="js/jogo.js"></script>
+  <script src="js/musica.js"></script>
   <script src="js/painel.js"></script>
 </body>
 </html>

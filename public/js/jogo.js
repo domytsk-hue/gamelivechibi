@@ -435,8 +435,17 @@ function focarEnt(id, z, seg) { const e = ents.get(id); if (e && e.mode !== 'oni
 function updateCam(dt, t) {
   let tx, ty, tz;
   if (foco && foco.ate > t) { tx = foco.x; ty = foco.y; tz = foco.z; }
+  else if (emVisaoGeral(t)) { foco = null; [tx, ty, tz] = VISAO_GERAL; }
   else { foco = null; const h = HOME(); const s = t / 1000; const pan = CFG.passeioDaCamera !== false; tx = h[0] + (pan ? Math.sin(s * 0.07) * 360 : 0); ty = h[1] + (pan ? Math.sin(s * 0.045) * 110 : 0); tz = CFG.zoomCamera || 1.6; }
-  const k = 1 - Math.exp(-dt * 1.8); cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k; cam.z += (tz - cam.z) * k;
+  const lento = tz < 1 || cam.z < 1; // entrar/sair da visão geral mais devagar, para ficar suave
+  const k = 1 - Math.exp(-dt * (lento ? 1.1 : 1.8)); cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k; cam.z += (tz - cam.z) * k;
+}
+// visão geral: a ilha inteira cabe na largura da tela, centralizada abaixo do HUD
+const VISAO_GERAL = [WORLD.W / 2, WORLD.H / 2 - 40, (W - 20) / WORLD.W];
+function emVisaoGeral(t) {
+  if (CFG.visaoGeral === false) return false;
+  const passeio = (CFG.segundosEntreVisaoGeral || 40) * 1000, geral = (CFG.segundosDeVisaoGeral || 7) * 1000;
+  return t % (passeio + geral) >= passeio;
 }
 const CAM_Y = 0.6; // ponto da tela onde fica o centro da câmera (abaixo do topo)
 function toScreen(wx, wy) { return [(wx - cam.x) * cam.z + W / 2, (wy - cam.y) * cam.z + H * CAM_Y]; }
@@ -529,6 +538,9 @@ function drawWorld(c, t) {
 }
 function drawLabels(c, t) {
   const lot = leilaoAtivo(), alvo = lot ? alvoLeilao() : -1;
+  // na visão geral (zoom bem aberto) as etiquetas somem aos poucos para a cidade aparecer limpa
+  const fade = Math.max(0, Math.min(1, (cam.z - 0.6) / 0.5)); if (fade <= 0) return;
+  c.globalAlpha = fade;
   // terrenos
   S.plots.forEach((st, i) => {
     const wp = plotLabelPos(i, st); const [x, y] = toScreen(wp[0], wp[1]); if (x < -200 || x > W + 200 || y < -100 || y > H + 100) return;
@@ -549,13 +561,14 @@ function drawLabels(c, t) {
       } else { const py = pillS(c, nome, x, y, p ? RARC[raridadeDe(p)] : '#e6e3f0', 21); if (selo) pillS(c, selo[0], x, py - 4, selo[1], 17, selo[2], selo[3]); }
     }
   });
+  c.globalAlpha = 1;
   // bonecos
   const arr = [...ents.values()].filter((e) => e.mode !== 'onibus' && e._sx != null).sort((a, b) => a.x + a.y - (b.x + b.y));
   for (const e of arr) {
     const p = S.pessoas[e.id]; if (!p) continue;
     const [x, y] = toScreen(e._sx, e._sy + e.spr[e.f].top);
     if (x < -150 || x > W + 150 || y < -100 || y > H + 150) continue;
-    c.globalAlpha = Math.max(0, Math.min(1, e.alpha));
+    c.globalAlpha = Math.max(0, Math.min(1, e.alpha)) * fade;
     let py = pillS(c, nomeDe(p), x, y, corTag(p), 22);
     const recente = now() - Math.max(p.ultCurtida || 0, p.ultPresente || 0) < 25000;
     const pr = recente ? progresso(p, alvo) : null;
@@ -631,7 +644,32 @@ function drawLuzes(c, t) {
   });
   c.restore();
 }
+// Rádio TikCity: selo no canto de baixo com o nome da música que está tocando
+function drawRadio(c, t) {
+  const R = window.MUSICA && MUSICA.info(); if (!R || !R.mostrar) return;
+  const dt = (performance.now() - R.desde) / 1000;
+  const entra = Math.min(1, dt / 0.5), ease = 1 - Math.pow(1 - entra, 3);
+  const novo = dt < 4; // nos primeiros segundos de cada música o selo pisca de leve
+  c.save(); c.textBaseline = 'middle';
+  c.font = `600 30px ${FONT}`; const wn = c.measureText(R.nome).width;
+  c.font = `700 21px ${FONT}`; const wr = c.measureText(R.radio.toUpperCase()).width;
+  const h = 96, w = Math.min(W - 60, Math.max(wn + 50, wr + 60) + 130), x = 30 - (1 - ease) * (w + 40), y = H - h - 40;
+  c.fillStyle = 'rgba(20,10,40,0.25)'; c.beginPath(); c.roundRect(x, y + 6, w, h, h / 2); c.fill();
+  c.fillStyle = 'rgba(42,35,64,0.93)'; c.beginPath(); c.roundRect(x, y, w, h, h / 2); c.fill();
+  c.strokeStyle = '#ff7aa8'; c.lineWidth = novo ? 4 + 2 * Math.abs(Math.sin(t / 180)) : 4; c.stroke();
+  // ícone: rádio com ondinhas
+  const cx = x + 50, cy = y + h / 2;
+  c.fillStyle = '#ff7aa8'; c.beginPath(); c.arc(cx, cy, 34, 0, 7); c.fill();
+  c.font = `38px ${EMOJI}`; c.textAlign = 'center'; c.fillStyle = '#ffffff'; c.fillText('📻', cx, cy + 2);
+  // nome da rádio + equalizador
+  c.textAlign = 'left'; c.font = `700 21px ${FONT}`; c.fillStyle = '#ffd84a'; c.fillText(R.radio.toUpperCase(), x + 100, y + 30);
+  const ex = x + 100 + wr + 14;
+  for (let i = 0; i < 4; i++) { const a = 5 + 11 * Math.abs(Math.sin(t / (170 + i * 45) + i * 1.7)); c.fillStyle = '#5fd068'; c.beginPath(); c.roundRect(ex + i * 8, y + 38 - a, 5, a, 2); c.fill(); }
+  c.font = `600 30px ${FONT}`; c.fillStyle = '#ffffff'; c.fillText('🎵 ' + R.nome, x + 100, y + 64, w - 120);
+  c.restore();
+}
 function drawHUD(c, t) {
+  drawRadio(c, t);
   // título + números
   panel(c, 30, 30, W - 60, 104);
   c.textBaseline = 'middle'; c.textAlign = 'left'; c.font = `700 46px ${FONT}`; c.fillStyle = '#ffd84a'; c.fillText(CFG.titulo, 62, 84);

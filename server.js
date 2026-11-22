@@ -25,11 +25,11 @@ const args = process.argv.slice(2);
 const SIMULACAO = args.includes('--simulacao');
 const argUser = args.find((a) => !a.startsWith('--'));
 const USUARIO = String(argUser || process.env.TIKTOK_USUARIO || cfg.usuarioTikTok || '').replace(/^@/, '').trim();
-const PORTA = Number(process.env.PORTA || cfg.porta || 3000);
+const PORTA = Number(process.env.PORT || process.env.PORTA || cfg.porta || 3000); // PORT: Railway e outras hospedagens
 const CHAVE = process.env.EULER_API_KEY || cfg.chaveEulerStream || '';
 
 // ---------------- site ----------------
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon' };
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg' };
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent((req.url || '/').split('?')[0]);
   let file = path.normalize(path.join(PUB, url === '/' ? 'index.html' : url));
@@ -78,7 +78,7 @@ async function conectarTikTok() {
 
   const ligar = async () => {
     if (tentando) return; tentando = true;
-    conn = new TikTokLiveConnection(USUARIO, opts);
+    conn = new TikTokLiveConnection(USUARIO_FINAL, opts);
     conn.on(WebcastEvent.FOLLOW, (d) => evento({ tipo: 'seguir', user: user(d.user) }));
     conn.on(WebcastEvent.LIKE, (d) => evento({ tipo: 'curtir', user: user(d.user), qtd: d.likeCount || 1 }));
     conn.on(WebcastEvent.CHAT, (d) => evento({ tipo: 'chat', user: user(d.user), texto: d.comment || '' }));
@@ -123,6 +123,20 @@ async function salvarPresentes(conn) {
   } catch (e) { console.log('[tiktok] não consegui baixar a lista de presentes:', e.message); }
 }
 
+// sem usuário configurado: pergunta na janela e guarda no config.servidor.json
+async function perguntarUsuario() {
+  if (SIMULACAO || USUARIO || !process.stdin.isTTY) return USUARIO;
+  const rl = (await import('node:readline/promises')).createInterface({ input: process.stdin, output: process.stdout });
+  let u = '';
+  while (!u) u = String(await rl.question('\n  Digite seu usuário do TikTok (sem o @) e aperte Enter: ')).replace(/^@/, '').trim();
+  rl.close();
+  try { fs.writeFileSync(path.join(DIR, 'config.servidor.json'), JSON.stringify({ ...cfg, usuarioTikTok: u }, null, 2)); console.log(`  Guardei "${u}" no config.servidor.json. Da próxima vez não pergunto.`); } catch { }
+  return u;
+}
+const USUARIO_FINAL = await perguntarUsuario();
+status.usuario = USUARIO_FINAL;
+if (USUARIO_FINAL && !SIMULACAO) status.msg = 'conectando…';
+
 server.listen(PORTA, () => {
   console.log('');
   console.log('  🏙️  TikCity rodando!');
@@ -130,6 +144,7 @@ server.listen(PORTA, () => {
   console.log(`  Jogo + painel de teste:           http://localhost:${PORTA}/?painel=1`);
   console.log('');
   if (SIMULACAO) console.log('  Modo simulação: sem TikTok. Use o painel de teste.');
-  else if (!USUARIO) console.log('  ⚠️  Coloque seu usuário do TikTok em config.servidor.json ou rode: npm start -- seu_usuario');
+  else if (USUARIO_FINAL) console.log(`  Lendo a live de @${USUARIO_FINAL}. Deixe esta janela aberta durante a live.`);
+  else if (!USUARIO_FINAL) console.log('  ⚠️  Coloque seu usuário do TikTok em config.servidor.json ou rode: npm start -- seu_usuario');
   else conectarTikTok().catch((e) => setStatus(false, 'erro: ' + e.message));
 });
