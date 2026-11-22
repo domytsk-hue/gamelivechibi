@@ -771,6 +771,7 @@ function conectar() {
   ws.onmessage = (m) => {
     let d; try { d = JSON.parse(m.data); } catch (e) { return; }
     if (d.tipo === 'evento') evento(d.evento);
+    else if (d.tipo === 'radio') { if (window.MUSICA && MUSICA.externo) MUSICA.externo(d); }
     else if (d.tipo === 'status') { status.tiktok = !!d.conectado; status.msg = d.msg; status.usuario = d.usuario; emitirStatus(); }
     else if (d.tipo === 'estado' && d.estado && d.estado.v === 1 && (d.estado.salvoEm || 0) > (S.salvoEm || 0)) { carregar(d.estado); }
   };

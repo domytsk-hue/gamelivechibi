@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rádio TikCity</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #2a2340; color: #fff; font-family: "Fredoka", system-ui, sans-serif; }
+  body { display: grid; place-items: center; text-align: center; }
+  h1 { color: #ffd84a; margin: 0 0 8px; font-size: 34px; }
+  #nome { font-size: 26px; margin: 10px 0 24px; }
+  button { font: inherit; font-size: 18px; padding: 10px 18px; border-radius: 14px; border: 2px solid #4f4580; background: #41386a; color: #fff; cursor: pointer; margin: 4px; }
+  button:hover { border-color: #ffd84a; }
+  .dica { color: #b9b0d8; font-size: 15px; max-width: 460px; line-height: 1.5; margin: 24px auto 0; }
+  #aviso { color: #ff7aa8; font-size: 18px; }
+</style>
+</head>
+<body>
+  <div>
+    <h1>📻 <span id="radio">Rádio TikCity</span></h1>
+    <div id="nome">…</div>
+    <div id="aviso">Clique em qualquer lugar para começar o som</div>
+    <div><button id="pular">⏭️ Próxima</button> <label>Volume <input id="vol" type="range" min="0" max="1" step="0.05"></label></div>
+    <p class="dica">Esta página só toca a música da live. No TikTok LIVE Studio, adicione uma fonte de áudio do tipo aplicativo ("Solicitação") com este navegador. O nome da música aparece sozinho no selo da cidade. Deixe esta janela aberta (pode minimizar).</p>
+  </div>
+  <script>window.RADIO_PAGINA = true;</script>
+  <script src="config.js"></script>
+  <script src="js/musica.js"></script>
+  <script>
+    (() => {
+      const CFG = (window.CONFIG && window.CONFIG.musica) || {};
+      const nomeRadio = CFG.nomeDaRadio || 'Rádio TikCity';
+      document.getElementById('radio').textContent = nomeRadio;
+      const $vol = document.getElementById('vol'); $vol.value = MUSICA.volume(); $vol.oninput = () => MUSICA.setVolume($vol.value);
+      document.getElementById('pular').onclick = () => MUSICA.pular();
+      let ws = null;
+      const conectar = () => {
+        try { ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`); } catch (e) { return setTimeout(conectar, 3000); }
+        ws.onclose = () => setTimeout(conectar, 3000);
+      };
+      conectar();
+      // avisa o jogo qual música está tocando (a cada 3 s, e na hora quando troca)
+      let ultimo = '';
+      const avisar = () => {
+        const i = MUSICA.info(); document.getElementById('nome').textContent = i ? '🎵 ' + i.nome : '(rádio parada)';
+        document.getElementById('aviso').style.display = MUSICA.precisaClique && MUSICA.precisaClique() ? '' : 'none';
+        if (i && ws && ws.readyState === 1) ws.send(JSON.stringify({ tipo: 'radio', nome: i.nome, numero: i.numero, radio: nomeRadio }));
+        ultimo = i ? i.nome : '';
+      };
+      setInterval(avisar, 3000); setInterval(() => { const i = MUSICA.info(); if ((i ? i.nome : '') !== ultimo) avisar(); }, 300);
+    })();
+  </script>
+</body>
+</html>
