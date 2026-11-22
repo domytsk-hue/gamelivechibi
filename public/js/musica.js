@@ -66,9 +66,22 @@
     if ((e.key === 'm' || e.key === 'M') && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) tocando ? parar() : ligar();
   });
 
+  // Página só da rádio aberta em outro navegador (radio.html): ela toca o som e avisa o nome da música.
+  // Enquanto ela estiver avisando, o jogo fica em silêncio e o selo mostra o que ela está tocando.
+  let ext = null, extTimer = null;
+  function externo(d) {
+    if (window.RADIO_PAGINA) return;
+    ext = { nome: d.nome, numero: d.numero, radio: d.radio, desde: ext && ext.nome === d.nome ? ext.desde : performance.now() };
+    if (tocando) parar();
+    clearTimeout(extTimer);
+    extTimer = setTimeout(() => { ext = null; if (CFG.ativa !== false) ligar(); }, 20000); // a página fechou: o jogo volta a tocar
+  }
+
   window.MUSICA = {
+    externo,
+    precisaClique: () => !!((ctx && ctx.state === 'suspended') || (ativa.el && ativa.el.paused && tocando)),
     tocar, parar, pular, ligar, setVolume, volume: () => volume, faixas: FAIXAS,
-    info: () => (tocando && atual >= 0 ? { nome: FAIXAS[atual].nome, numero: atual + 1, desde: inicio, radio: CFG.nomeDaRadio || 'Rádio TikCity', mostrar: CFG.mostrarNaTela !== false } : null),
+    info: () => (ext ? { nome: ext.nome, numero: ext.numero, desde: ext.desde, radio: ext.radio || CFG.nomeDaRadio || 'Rádio TikCity', mostrar: CFG.mostrarNaTela !== false } : tocando && atual >= 0 ? { nome: FAIXAS[atual].nome, numero: atual + 1, desde: inicio, radio: CFG.nomeDaRadio || 'Rádio TikCity', mostrar: CFG.mostrarNaTela !== false } : null),
   };
-  if (CFG.ativa !== false) ligar();
+  if (CFG.ativa !== false || window.RADIO_PAGINA) ligar();
 })();

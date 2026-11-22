@@ -48,11 +48,18 @@ let status = { tipo: 'status', conectado: false, usuario: USUARIO, msg: SIMULACA
 function enviarTodos(m) { const s = JSON.stringify(m); for (const c of wss.clients) if (c.readyState === 1) c.send(s); }
 function setStatus(conectado, msg) { status = { ...status, conectado, msg }; enviarTodos(status); console.log(`[tiktok] ${msg}`); }
 
+let radioAtual = null;
 wss.on('connection', (ws) => {
   ws.send(JSON.stringify(status));
+  if (radioAtual && Date.now() - radioAtual.em < 20000) ws.send(JSON.stringify(radioAtual));
   try { ws.send(JSON.stringify({ tipo: 'estado', estado: JSON.parse(fs.readFileSync(ARQ, 'utf8')) })); } catch { }
   ws.on('message', (raw) => {
     let m; try { m = JSON.parse(raw); } catch { return; }
+    // página da rádio (/radio.html) avisa qual música está tocando; o jogo mostra no selo
+    if (m.tipo === 'radio' && typeof m.nome === 'string') {
+      radioAtual = { tipo: 'radio', nome: m.nome.slice(0, 60), radio: String(m.radio || '').slice(0, 40), numero: Number(m.numero) || 0, em: Date.now() };
+      return enviarTodos(radioAtual);
+    }
     if (m.tipo === 'salvar' && m.estado && m.estado.v === 1) {
       fs.writeFile(ARQ + '.tmp', JSON.stringify(m.estado), (e) => { if (!e) fs.rename(ARQ + '.tmp', ARQ, () => { }); });
     }
